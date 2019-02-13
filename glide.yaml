@@ -1,0 +1,12 @@
+package: github.com/ca-gip/kubi-common
+import:
+- package: github.com/ca-gip/kubi
+  version: ^1.0.0
+  subpackages:
+  - pkg
+- package: k8s.io/code-generator
+  subpackages:
+  - _examples/crd/clientset/versioned
+- package: github.com/ianlewis/controllerutil
+  subpackages:
+  - controller

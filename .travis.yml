@@ -1,0 +1,21 @@
+language: go
+go:
+  - "1.10"
+
+branches:
+  only:
+  - /.*/  
+
+env:
+  global:
+    - COMMIT=${TRAVIS_COMMIT::8}
+    - REPO=cagip/kubi
+
+script:
+  - docker build -f Dockerfile -t $REPO:$COMMIT .
+
+after_success:
+  - docker login -u $DOCKER_USER -p $DOCKER_PASS
+  - export TAG=`if [ "$TRAVIS_BRANCH" == "master" ]; then echo "latest"; else (echo $TRAVIS_BRANCH) ; fi`
+  - docker tag $REPO:$COMMIT $REPO:$TAG
+  - docker push $REPO:$TAG
