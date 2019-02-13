@@ -274,4 +274,9 @@ imports:
   - pkg/util/proto
 - name: sigs.k8s.io/yaml
   version: fd68e9863619f6ec2fdd8625fe1f02e7c877e480
+- name: github.com/atlassian/go-artifactory
+  version: c4928bc55cc8f5bd782d90da7919f6ccdcb2f839
+  subpackages:
+  - pkg/artifactory
+
 testImports: []
