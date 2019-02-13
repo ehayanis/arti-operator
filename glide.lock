@@ -1,6 +1,10 @@
-hash: dd4a688be6298544dca752556cb4edb981c5c2ff73961060d39186fb737598c0
-updated: 2019-02-12T23:48:55.451935683+01:00
+hash: 9a8283b8eef82d6d9f794a5d80ed8196ecb1d3c0902268d43d2abac681b67b64
+updated: 2019-02-13T16:50:59.120463497+01:00
 imports:
+- name: github.com/atlassian/go-artifactory
+  version: c4928bc55cc8f5bd782d90da7919f6ccdcb2f839
+  subpackages:
+  - pkg/artifactory
 - name: github.com/ca-gip/kubi
   version: deb54555e6525bc3ed775c99c939df710702f27f
   subpackages:
@@ -18,12 +22,6 @@ imports:
   subpackages:
   - proto
   - sortkeys
-- name: github.com/golang/glog
-  version: 23def4e6c14b4da8ac2ed8007337bc5eb5007998
-- name: github.com/golang/groupcache
-  version: 02826c3e79038b59d737d3b1c0a1d937f71a4433
-  subpackages:
-  - lru
 - name: github.com/golang/protobuf
   version: b4deda0973fb4c70b50d226b1af49f3da59f5265
   subpackages:
@@ -34,8 +32,12 @@ imports:
   - ptypes/timestamp
 - name: github.com/google/btree
   version: 7d79101e329e5a3adf994758c578dab82b90c017
+- name: github.com/google/go-querystring
+  version: 44c6ddd0a2342c386950e880b658017258da92fc
+  subpackages:
+  - query
 - name: github.com/google/gofuzz
-  version: 24818f796faf91cd76ec7bddd72458fbced7a6c1
+  version: 44d81051d367757e1c7c6a5a86423ece9afcf63c
 - name: github.com/googleapis/gnostic
   version: 7c663266750e7d82587642f65e60bc4083f1f84e
   subpackages:
@@ -54,8 +56,8 @@ imports:
   version: 82afb99bcab77896e3e8f5341a906372f49dbe6b
   subpackages:
   - controller
-  - informers
-  - logging
+- name: github.com/imdario/mergo
+  version: 9316a62528ac99aaecb4e47eadd6dc8aa6533d58
 - name: github.com/json-iterator/go
   version: ab8a2e0c74be9d3be70b3184d9acc634935ded82
 - name: github.com/modern-go/concurrent
@@ -69,6 +71,8 @@ imports:
   subpackages:
   - internal/cbor
   - internal/json
+- name: github.com/spf13/pflag
+  version: 583c0c0531f06d5278b7d917446061adc344b5cd
 - name: golang.org/x/crypto
   version: de0752318171da717af4ce24d0a2e8626afaeb11
   subpackages:
@@ -77,13 +81,10 @@ imports:
   version: 0ed95abb35c445290478a5348a7b38bb154135fd
   subpackages:
   - context
-  - html
-  - html/atom
   - http2
   - http2/hpack
   - idna
   - lex/httplex
-  - websocket
 - name: golang.org/x/oauth2
   version: a6bd8cefa1811bd24b86f8902872e4e8225f74c4
   subpackages:
@@ -188,19 +189,16 @@ imports:
   - pkg/util/framer
   - pkg/util/intstr
   - pkg/util/json
-  - pkg/util/mergepatch
   - pkg/util/naming
   - pkg/util/net
   - pkg/util/runtime
   - pkg/util/sets
-  - pkg/util/strategicpatch
   - pkg/util/validation
   - pkg/util/validation/field
   - pkg/util/wait
   - pkg/util/yaml
   - pkg/version
   - pkg/watch
-  - third_party/forked/golang/json
   - third_party/forked/golang/reflect
 - name: k8s.io/client-go
   version: e64494209f554a6723674bd494d69445fb76a1d4
@@ -247,17 +245,21 @@ imports:
   - plugin/pkg/client/auth/exec
   - rest
   - rest/watch
+  - tools/auth
   - tools/cache
+  - tools/clientcmd
   - tools/clientcmd/api
+  - tools/clientcmd/api/latest
+  - tools/clientcmd/api/v1
   - tools/metrics
   - tools/pager
-  - tools/record
   - tools/reference
   - transport
   - util/buffer
   - util/cert
   - util/connrotation
   - util/flowcontrol
+  - util/homedir
   - util/integer
   - util/retry
 - name: k8s.io/code-generator
@@ -266,12 +268,6 @@ imports:
   - _examples/crd/clientset/versioned
 - name: k8s.io/klog
   version: 8139d8cb77af419532b33dfa7dd09fbc5f1d344f
-  subpackages:
-  - glog
-- name: k8s.io/kube-openapi
-  version: d7c86cdc46e3a4fcf892b32dd7bc3aa775e0870e
-  subpackages:
-  - pkg/util/proto
 - name: sigs.k8s.io/yaml
   version: fd68e9863619f6ec2fdd8625fe1f02e7c877e480
 testImports: []
