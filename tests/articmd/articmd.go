@@ -28,10 +28,10 @@ func main() {
 		Location:    "intranet",
 		Description: "Test fait par Aurélien Gabet, à supprimer ",
 	}
-	/*
-		fieldsArtifactory.ArtifactoryRepositoryCreate(client)
-		fieldsArtifactory.CreateArtifactoryGroup(client)
-		fieldsArtifactory.CreateArtifactoryUsers(client)*/
+
+	fieldsArtifactory.ArtifactoryRepositoryCreate(client)
+	fieldsArtifactory.CreateArtifactoryGroup(client)
+	fieldsArtifactory.CreateArtifactoryUsers(client)
 	fieldsArtifactory.CreateArtifactoryPermissions(client)
 
 }
