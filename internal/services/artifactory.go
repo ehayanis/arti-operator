@@ -18,7 +18,7 @@ type ArtifactoryInformation struct {
 	Description string
 }
 
-func (fields *ArtifactoryInformation) ArtifactoryRepositoryCreate(client *artifactory.Client, listOfRepositories []string) {
+func (fields *ArtifactoryInformation) ArtifactoryRepositoryCreate(client *artifactory.Client) {
 	artifactoryRepositoryKey := fmt.Sprintf("%s-%s-docker-%s-%s",
 		fields.Owner,
 		fields.ProjectName,
@@ -33,63 +33,17 @@ func (fields *ArtifactoryInformation) ArtifactoryRepositoryCreate(client *artifa
 		Description:     artifactory.String(fields.Description),
 	}
 
-	if isRepositoryExist(listOfRepositories, artifactoryRepositoryKey) == true {
-		client.Repositories.UpdateLocal(context.Background(), artifactoryRepositoryKey, &repo)
-		fmt.Println("Update")
-	} else {
+	existingRepo,resp, error :=client.Repositories.GetLocal(context.Background(), artifactoryRepositoryKey)
+
+	if resp.StatusCode == http.StatusBadRequest && error != nil {
 		client.Repositories.CreateLocal(context.Background(), &repo)
-		fmt.Println("Create")
-	}
-}
-
-func isRepositoryExist(list []string, item string) bool {
-	for i := 0; i < len(list); i++ {
-		if list[i] == item {
-			return true
-		}
-	}
-
-	return false
-}
-
-func ListOfExistingRepositories(client *artifactory.Client) []string {
-	var listOfRepo []string
-	opts := artifactory.RepositoryListOptions{
-		Type: "local",
-	}
-
-	repo,resp,error :=client.Repositories.GetLocal(context.Background(), "ok")
-
-	// traitement
-	if resp.StatusCode == http.StatusNotFound {
-
+		log.Printf("Creation of Repository %s", artifactoryRepositoryKey)
 	} else if resp.StatusCode == http.StatusUnauthorized {
-
+		log.Println("Unauthorized access to Artifactory")
+	} else if resp.StatusCode == http.StatusOK && existingRepo != nil {
+		client.Repositories.UpdateLocal(context.Background(), artifactoryRepositoryKey, &repo)
+		log.Printf("Update of Repository %s", artifactoryRepositoryKey)
 	}
-	// traiter 200
-
-	// update utiliser repo
-
-	//
-
-	//
-
-
-
-	repos, _, err := client.Repositories.ListRepositories(context.Background(), &opts)
-	if err != nil {
-		fmt.Printf("\nerror: %v\n", err)
-		return nil
-	} else if repos == nil {
-		fmt.Printf("\nerror: repos cannot be nil\n")
-		return nil
-	}
-
-	for _, repo := range *repos {
-		listOfRepo = append(listOfRepo,*repo.Key)
-	}
-
-	return listOfRepo
 }
 
 func (fields *ArtifactoryInformation) CreateArtifactoryGroup(client *artifactory.Client) {
@@ -104,14 +58,14 @@ func (fields *ArtifactoryInformation) CreateArtifactoryGroup(client *artifactory
 	if err != nil {
 		log.Fatal(err)
 	} else {
-		log.Println(resp)
+		log.Printf("%d: Group %s created or replaced",resp.StatusCode, nameOfGroup)
 	}
 }
 
 func (fields *ArtifactoryInformation) CreateArtifactoryUsers(client *artifactory.Client) {
 
-	userNameRO := fmt.Sprintf("%s_%s_k8s_reader", fields.Owner, fields.ProjectName, fields.Location)
-	userNameRW := fmt.Sprintf("%s_%s_jenkins_writer", fields.Owner, fields.ProjectName, fields.Location)
+	userNameRO := fmt.Sprintf("%s_%s_%s_k8s_reader", fields.Owner, fields.ProjectName, fields.Location)
+	userNameRW := fmt.Sprintf("%s_%s_%s_jenkins_writer", fields.Owner, fields.ProjectName, fields.Location)
 	userEmailRO := fmt.Sprintf("%s@notanadress.ca.example.com", userNameRO)
 	userEmailRW := fmt.Sprintf("%s@notanadress.ca.example.com", userNameRW)
 
@@ -131,7 +85,7 @@ func (fields *ArtifactoryInformation) CreateArtifactoryUsers(client *artifactory
 	if err != nil {
 		log.Println(err.Error())
 	} else {
-		log.Println(resp)
+		log.Printf("%d: Group %s created or replaced",resp.StatusCode, userNameRO)
 	}
 
 	userRW := artifactory.User{
@@ -150,7 +104,7 @@ func (fields *ArtifactoryInformation) CreateArtifactoryUsers(client *artifactory
 	if err != nil {
 		log.Println(err.Error())
 	} else {
-		log.Println(resp)
+		log.Printf("%d: Group %s created or replaced",resp.StatusCode, userNameRW)
 	}
 
 }
@@ -177,8 +131,7 @@ func main() {
 		Description: "Test fait par Aurélien Gabet, à supprimer ",
 	}
 
-	list := ListOfExistingRepositories(client)
-	fieldsArtifactory.ArtifactoryRepositoryCreate(client, list)
+	fieldsArtifactory.ArtifactoryRepositoryCreate(client)
 	fieldsArtifactory.CreateArtifactoryGroup(client)
 	fieldsArtifactory.CreateArtifactoryUsers(client)
 
