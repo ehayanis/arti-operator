@@ -13,3 +13,7 @@ import:
 - package: github.com/atlassian/go-artifactory
   subpackages:
   - pkg/artifactory
+- package: k8s.io/client-go
+  version: ^10.0.0
+  subpackages:
+  - tools/clientcmd

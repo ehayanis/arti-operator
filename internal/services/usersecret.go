@@ -16,25 +16,22 @@ type UserSecretService struct {
 	secretsNamespace string
 	secretNamePrefix string
 	logger           zerolog.Logger
+	clientConfig     *rest.Config
 }
 
-func NewUserSecretService() *UserSecretService {
-	return &UserSecretService{
+func NewUserSecretService(kconfig *rest.Config) *UserSecretService {
+	result := &UserSecretService{
 		secretsNamespace: "kube-system",
 		secretNamePrefix: "artifactory-user",
 		logger:           utils.Log.With().Str("service", "usersecret").Logger(),
+		clientConfig:     kconfig,
 	}
+	return result
 }
 
 func (s *UserSecretService) GetUserPassword(username string) (Password string, err error) {
-	kconfig, err := rest.InClusterConfig()
 
-	if err != nil {
-		s.logger.Info().Err(err).Msg("Cannot get service account.")
-		return "", err
-	}
-
-	coreClient, err := kubernetes.NewForConfig(kconfig)
+	coreClient, err := kubernetes.NewForConfig(s.clientConfig)
 
 	if err != nil {
 		s.logger.Info().Err(err).Msg("Cannot get kubernetes core API client.")
@@ -43,12 +40,12 @@ func (s *UserSecretService) GetUserPassword(username string) (Password string, e
 
 	secret := s.newPasswordSecretForUser(username)
 
-	secret, err = coreClient.CoreV1().Secrets(s.secretsNamespace).Create(secret)
+	_, err = coreClient.CoreV1().Secrets(s.secretsNamespace).Create(secret)
 
 	if err != nil {
 		// If the object already exists, we get it to extract the password from it
 		if k8serrors.IsAlreadyExists(err) {
-			secret, err := coreClient.CoreV1().Secrets(s.secretsNamespace).Get(secret.ObjectMeta.Name, metav1.GetOptions{})
+			secret, err = coreClient.CoreV1().Secrets(s.secretsNamespace).Get(secret.ObjectMeta.Name, metav1.GetOptions{})
 			if err != nil {
 				s.logger.Info().Err(err).Str("namespace", s.secretsNamespace).Msgf("Cannot get existing user secret : %s.", secret.ObjectMeta.Name)
 				return "", err
@@ -81,14 +78,14 @@ func (s *UserSecretService) getSecretNameForUser(username string) string {
 			s.secretNamePrefix,
 			username,
 		},
-		"_")
+		".")
 
 	return result
 }
 
 func (s *UserSecretService) newPasswordSecretForUser(username string) (secret *v1.Secret) {
 	secretName := s.getSecretNameForUser(username)
-	password := s.generatePassword()
+	password := utils.GenerateRandomPassword(12)
 
 	secret = &v1.Secret{
 		Type: v1.SecretTypeOpaque,
@@ -106,9 +103,4 @@ func (s *UserSecretService) newPasswordSecretForUser(username string) (secret *v
 	}
 
 	return secret
-}
-
-func (s *UserSecretService) generatePassword() string {
-	// FIXME: just to test the secret creation ;). See how to create a random string later
-	return "toto"
 }
