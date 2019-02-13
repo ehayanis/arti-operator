@@ -1,5 +1,5 @@
 // Retrieves list of all repositories for an artifactory instance
-package main
+package services
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 	"github.com/atlassian/go-artifactory/pkg/artifactory"
 	"log"
 	"net/http"
-	"os"
 )
 
 type ArtifactoryInformation struct {
@@ -109,30 +108,33 @@ func (fields *ArtifactoryInformation) CreateArtifactoryUsers(client *artifactory
 
 }
 
-func main() {
+func (fields *ArtifactoryInformation) CreateArtifactoryPermissions(client *artifactory.Client) {
 
-	// TODO objet config, sortie en exit 1 si configuration invalidation
-	tp := artifactory.BasicAuthTransport{
-		Username: os.Getenv("ARTIFACTORY_USERNAME"),
-		Password: os.Getenv("ARTIFACTORY_PASSWORD"),
+	permissionNameRO := fmt.Sprintf("%s-%s-docker-allrepos-%s-ro", fields.Owner, fields.ProjectName, fields.Location)
+	artifactoryRepositoryKey := fmt.Sprintf("%s-%s-docker-%s-%s",
+		fields.Owner,
+		fields.ProjectName,
+		fields.Stage,
+		fields.Location)
+	userNameRO := fmt.Sprintf("%s_%s_%s_k8s_reader", fields.Owner, fields.ProjectName, fields.Location)
+
+	permissions := artifactory.PermissionTargets{
+		Name:            artifactory.String(permissionNameRO),
+		IncludesPattern: nil,
+		ExcludesPattern: nil,
+		Repositories:     &[]string{artifactoryRepositoryKey},
+		Principals: &artifactory.Principals{
+			Users:  &map[string][]string{userNameRO: []string{"r"}},
+			Groups: nil,
+		},
 	}
 
-	client, err := artifactory.NewClient(os.Getenv("ARTIFACTORY_URL"), tp.Client())
+	resp, err := client.Security.CreateOrReplacePermissionTargets(context.Background(), permissionNameRO, &permissions )
+
 	if err != nil {
-		fmt.Printf("\nerror: %v\n", err)
-		return
+		log.Fatal(err)
+	} else {
+		log.Printf("%s", userNameRO)
+		log.Printf("%d: Permission %s created or replaced",resp.StatusCode, permissionNameRO)
 	}
-
-	fieldsArtifactory := &ArtifactoryInformation{
-		Owner:       "aug",
-		ProjectName: "e4",
-		Stage:       "scratch",
-		Location:    "intranet",
-		Description: "Test fait par Aurélien Gabet, à supprimer ",
-	}
-
-	fieldsArtifactory.ArtifactoryRepositoryCreate(client)
-	fieldsArtifactory.CreateArtifactoryGroup(client)
-	fieldsArtifactory.CreateArtifactoryUsers(client)
-
 }
