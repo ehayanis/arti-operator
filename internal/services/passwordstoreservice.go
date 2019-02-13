@@ -1,6 +1,8 @@
 package services
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"strings"
 
 	"github.com/ca-gip/artifactory-operator/internal/utils"
@@ -12,15 +14,15 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-type UserSecretService struct {
+type PasswordStoreService struct {
 	secretsNamespace string
 	secretNamePrefix string
 	logger           zerolog.Logger
 	clientConfig     *rest.Config
 }
 
-func NewUserSecretService(kconfig *rest.Config) *UserSecretService {
-	result := &UserSecretService{
+func NewPasswordStoreService(kconfig *rest.Config) *PasswordStoreService {
+	result := &PasswordStoreService{
 		secretsNamespace: "kube-system",
 		secretNamePrefix: "artifactory-user",
 		logger:           utils.Log.With().Str("service", "usersecret").Logger(),
@@ -29,7 +31,7 @@ func NewUserSecretService(kconfig *rest.Config) *UserSecretService {
 	return result
 }
 
-func (s *UserSecretService) GetUserPassword(username string) (Password string, err error) {
+func (s *PasswordStoreService) GetUserPassword(username string) (password string, err error) {
 
 	coreClient, err := kubernetes.NewForConfig(s.clientConfig)
 
@@ -56,12 +58,12 @@ func (s *UserSecretService) GetUserPassword(username string) (Password string, e
 		}
 	}
 
-	password, err := s.extractPasswordFromSecret(secret)
+	password, err = s.extractPasswordFromSecret(secret)
 
 	return password, nil
 }
 
-func (s *UserSecretService) extractPasswordFromSecret(secret *v1.Secret) (password string, err error) {
+func (s *PasswordStoreService) extractPasswordFromSecret(secret *v1.Secret) (password string, err error) {
 	passwordBytes, keyExists := secret.Data["password"]
 	if !keyExists {
 		s.logger.Info().Err(err).Str("namespace", s.secretsNamespace).Msgf("Invalid user secret '%s', does not contain password.", secret.ObjectMeta.Name)
@@ -72,18 +74,21 @@ func (s *UserSecretService) extractPasswordFromSecret(secret *v1.Secret) (passwo
 
 }
 
-func (s *UserSecretService) getSecretNameForUser(username string) string {
+func (s *PasswordStoreService) getSecretNameForUser(username string) string {
+	hashedUsername := md5.Sum([]byte(username))
+	usernameSuffix := hex.EncodeToString(hashedUsername[:])
+
 	result := strings.Join(
 		[]string{
 			s.secretNamePrefix,
-			username,
+			usernameSuffix,
 		},
-		".")
+		"-")
 
 	return result
 }
 
-func (s *UserSecretService) newPasswordSecretForUser(username string) (secret *v1.Secret) {
+func (s *PasswordStoreService) newPasswordSecretForUser(username string) (secret *v1.Secret) {
 	secretName := s.getSecretNameForUser(username)
 	password := utils.GenerateRandomPassword(12)
 
@@ -94,6 +99,7 @@ func (s *UserSecretService) newPasswordSecretForUser(username string) (secret *v
 			Name: secretName,
 			Labels: map[string]string{
 				"creator": "artifactory-operator",
+				"user":    username,
 			},
 		},
 

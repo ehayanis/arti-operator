@@ -22,7 +22,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	secretService := services.NewUserSecretService(kconfig)
+	secretService := services.NewPasswordStoreService(kconfig)
 
 	password, err := secretService.GetUserPassword(username)
 
