@@ -10,3 +10,4 @@ import:
 - package: github.com/ianlewis/controllerutil
   subpackages:
   - controller
+- package: github.com/atlassian/go-artifactory/pkg/artifactory
