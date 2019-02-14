@@ -25,7 +25,7 @@ func NewPasswordStoreService(kconfig *rest.Config) *PasswordStoreService {
 	result := &PasswordStoreService{
 		secretsNamespace: "kube-system",
 		secretNamePrefix: "artifactory-user",
-		logger:           utils.Log.With().Str("service", "usersecret").Logger(),
+		logger:           utils.Log.With().Str("service", "passwordstore").Logger(),
 		clientConfig:     kconfig,
 	}
 	return result

@@ -27,7 +27,7 @@ func main() {
 	password, err := secretService.GetUserPassword(username)
 
 	if err != nil {
-		fmt.Errorf("Error retrieving user password:", err)
+		fmt.Println("Error retrieving user password:", err)
 		os.Exit(1)
 	}
 
@@ -36,7 +36,7 @@ func main() {
 	password, err = secretService.GetUserPassword(username)
 
 	if err != nil {
-		fmt.Errorf("Error retrieving user password:", err)
+		fmt.Println("Error retrieving user password:", err)
 		os.Exit(1)
 	}
 
