@@ -1,0 +1,13 @@
+---
+apiVersion: "ca-gip.github.com/v1"
+kind: Project
+metadata:
+  name: aurelien
+spec:
+    tenant: aug
+    environment: development
+    project: e4
+    stages:
+      - scratch
+      - staging
+      - stable
