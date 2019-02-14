@@ -55,9 +55,18 @@ func WatchProjects() cache.Store {
 		fmt.Println("Couldn't create Kubi client:", err)
 		os.Exit(1)
 	}
-	services := &operatorServices{
-		passwordStoreService:       services.NewPasswordStoreService(kconfig, operatorConfig),
-		dockerConfigSecretsService: services.NewDockerConfigSecretsService(kconfig, operatorConfig),
+
+	passwordStoreService := services.NewPasswordStoreService(kconfig, operatorConfig)
+	artifactoryService, err := services.NewArtifactoryService(operatorConfig, passwordStoreService)
+	if err != nil {
+		logger.Error().Msgf("Couldn't create Artifactory service:", err)
+	}
+
+	dockerConfigSecretsService := services.NewDockerConfigSecretsService(kconfig, operatorConfig)
+
+	projectService, err := services.NewProjectService(operatorConfig, dockerConfigSecretsService, artifactoryService)
+	if err != nil {
+		logger.Error().Msgf("Couldn't create Project service:", err)
 	}
 
 	watchlist := cache.NewListWatchFromClient(v3.CagipV1().RESTClient(), "projects", v12.NamespaceAll, fields.Everything())
@@ -65,10 +74,10 @@ func WatchProjects() cache.Store {
 
 	store, controller := cache.NewInformer(watchlist, &v1.Project{}, resyncPeriod, cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			projectCreated(obj, services)
+			projectCreated(obj, projectService)
 		},
 		UpdateFunc: func(old interface{}, new interface{}) {
-			projectUpdate(old, new, services)
+			projectUpdate(old, new, projectService)
 		},
 	})
 
@@ -79,15 +88,17 @@ func WatchProjects() cache.Store {
 	return store
 }
 
-func projectUpdate(old interface{}, new interface{}, services *operatorServices) {
+func projectUpdate(old interface{}, new interface{}, projectService *services.ProjectService) {
 	newProject := new.(*v1.Project)
 
+	projectService.HandleProject(newProject)
 	utils.Log.Info().Msgf("Operator: the project %v has been updated, updating associated resources: namespace, networkpolicies.", newProject.Name)
 
 }
 
-func projectCreated(obj interface{}, services *operatorServices) {
+func projectCreated(obj interface{}, projectService *services.ProjectService) {
 	project := obj.(*v1.Project)
+	projectService.HandleProject(project)
 	utils.Log.Info().Msgf("Operator: the project %v has been created, generating associated resources: namespace, networkpolicies.", project.Name)
 
 }

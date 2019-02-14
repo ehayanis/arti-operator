@@ -1,4 +1,3 @@
-// Retrieves list of all repositories for an artifactory instance
 package services
 
 import (
@@ -22,11 +21,13 @@ type ArtifactoryInformation struct {
 }
 
 type ArtifactoryService struct {
-	logger            zerolog.Logger
-	artifactoryClient *artifactory.Client
+	logger               zerolog.Logger
+	PasswordStoreService *PasswordStoreService
+	artifactoryClient    *artifactory.Client
+	artifactoryUrl       string
 }
 
-func NewArtifactoryService(operatorConfig *config.ArtifactoryOperatorConfig) (*ArtifactoryService, error) {
+func NewArtifactoryService(operatorConfig *config.ArtifactoryOperatorConfig, PasswordStoreService *PasswordStoreService) (*ArtifactoryService, error) {
 	logger := utils.Log.With().Str("service", "artifactory").Logger()
 
 	tp := artifactory.BasicAuthTransport{
@@ -41,8 +42,10 @@ func NewArtifactoryService(operatorConfig *config.ArtifactoryOperatorConfig) (*A
 	}
 
 	result := &ArtifactoryService{
-		artifactoryClient: client,
-		logger:            logger,
+		artifactoryClient:    client,
+		artifactoryUrl:       operatorConfig.ArtifactoryServerUrl,
+		PasswordStoreService: PasswordStoreService,
+		logger:               logger,
 	}
 
 	return result, nil
@@ -68,10 +71,13 @@ func userName(permission string, fields *ArtifactoryInformation) string {
 	return fmt.Sprintf("%s_%s_%s_%s", fields.Tenant, fields.ProjectName, fields.Location, permission)
 }
 
-func (s *ArtifactoryService) ArtifactoryRepositoryCreate(fields *ArtifactoryInformation) {
+func (s *ArtifactoryService) ArtifactoryRepositoryCreate(fields *ArtifactoryInformation) ([]string, error) {
+	result := []string{}
+
 	for _, stage := range fields.Stages {
 
 		artifactoryRepositoryName := artifactoryRepositoryKey(fields, stage)
+		result = append(result, artifactoryRepositoryName)
 
 		repo := artifactory.LocalRepository{
 			Key:             artifactory.String(artifactoryRepositoryName),
@@ -83,24 +89,37 @@ func (s *ArtifactoryService) ArtifactoryRepositoryCreate(fields *ArtifactoryInfo
 
 		existingRepo, response, err := s.artifactoryClient.Repositories.GetLocal(context.Background(), artifactoryRepositoryName)
 
-		if response.StatusCode == http.StatusBadRequest && err != nil {
-			resp, error := s.artifactoryClient.Repositories.CreateLocal(context.Background(), &repo)
-			if error != nil {
-				log.Printf(err.Error())
-			} else if resp.StatusCode == http.StatusOK {
-				log.Printf("Creation of Repository %s", artifactoryRepositoryName)
+		if err != nil {
+			if response == nil {
+				s.logger.Error().Msgf("Unidentified error creating repo %v: %v", err)
+				return result, err
 			}
-		} else if response.StatusCode == http.StatusUnauthorized {
-			log.Println("Unauthorized access to Artifactory")
-		} else if response.StatusCode == http.StatusOK && existingRepo != nil {
-			resp, error := s.artifactoryClient.Repositories.UpdateLocal(context.Background(), artifactoryRepositoryName, &repo)
-			if error != nil {
-				log.Printf(err.Error())
-			} else if resp.StatusCode == http.StatusOK {
-				log.Printf("Update of Repository %s", artifactoryRepositoryName)
+			if response.StatusCode == http.StatusBadRequest {
+				resp, err := s.artifactoryClient.Repositories.CreateLocal(context.Background(), &repo)
+				if err != nil {
+					s.logger.Error().Msgf("Could not create artifactory repo %v: %v", artifactoryRepositoryName, err)
+					return result, err
+				} else if resp.StatusCode == http.StatusOK {
+					s.logger.Info().Msgf("Creation of Repository %s successful.", artifactoryRepositoryName)
+					continue
+				}
+			} else if response.StatusCode == http.StatusUnauthorized {
+				s.logger.Error().Msgf("Could not access artifactory to create repo %v, unauthorized: %v", artifactoryRepositoryName, err)
+				return result, err
+			} else if response.StatusCode == http.StatusOK && existingRepo != nil {
+				resp, err := s.artifactoryClient.Repositories.UpdateLocal(context.Background(), artifactoryRepositoryName, &repo)
+				if err != nil {
+					s.logger.Error().Msgf("Could not update artifactory repo %v: %v", artifactoryRepositoryName, err)
+					return result, err
+				} else if resp.StatusCode == http.StatusOK {
+					s.logger.Info().Msgf("Update of Repository %s successful.", artifactoryRepositoryName)
+					continue
+				}
 			}
 		}
 	}
+
+	return result, nil
 }
 
 func (s *ArtifactoryService) CreateArtifactoryGroup(fields *ArtifactoryInformation) {
@@ -137,19 +156,45 @@ func createArtifactoryUsers(client *artifactory.Client, userName string, email s
 	}
 }
 
-func (s *ArtifactoryService) CreateArtifactoryUsers(fields *ArtifactoryInformation) {
+type ArtifactoryRepoUsers struct {
+	UserNameRO string
+	PasswordRO string
+	UserNameRW string
+	PasswordRW string
+}
+
+func (s *ArtifactoryService) CreateArtifactoryUsers(fields *ArtifactoryInformation) (*ArtifactoryRepoUsers, error) {
 
 	userNameRO := fmt.Sprintf("%s_%s_%s_k8s_reader", fields.Tenant, fields.ProjectName, fields.Location)
 	userEmailRO := fmt.Sprintf("%s@notanadress.ca.example.com", userNameRO)
 	groupsRO := &[]string{"readers"}
-	passwordRO := "toto"
+	passwordRO, err := s.PasswordStoreService.GetUserPassword(userNameRO)
+	if err != nil {
+		s.logger.Error().Msgf("Couldn't generate password for user %v: %v", userNameRO, err)
+		return nil, err
+	}
+	s.logger.Debug().Msgf("Creating RO user %v.", userNameRO)
 	createArtifactoryUsers(s.artifactoryClient, userNameRO, userEmailRO, passwordRO, groupsRO)
 
 	userNameRW := fmt.Sprintf("%s_%s_%s_jenkins_writer", fields.Tenant, fields.ProjectName, fields.Location)
 	userEmailRW := fmt.Sprintf("%s@notanadress.ca.example.com", userNameRW)
 	groupsRW := &[]string{"readers"}
-	passwordRW := "toto"
+	passwordRW, err := s.PasswordStoreService.GetUserPassword(userNameRW)
+	if err != nil {
+		s.logger.Error().Msgf("Couldn't generate password for user %v: %v", userNameRW, err)
+		return nil, err
+	}
+	s.logger.Debug().Msgf("Creating RW user %v.", userNameRW)
 	createArtifactoryUsers(s.artifactoryClient, userNameRW, userEmailRW, passwordRW, groupsRW)
+
+	result := &ArtifactoryRepoUsers{
+		UserNameRO: userNameRO,
+		PasswordRO: passwordRO,
+		UserNameRW: userNameRW,
+		PasswordRW: passwordRW,
+	}
+
+	return result, nil
 }
 
 func createArtifactoryPermissions(
