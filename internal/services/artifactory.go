@@ -4,17 +4,48 @@ package services
 import (
 	"context"
 	"fmt"
-	"github.com/atlassian/go-artifactory/pkg/artifactory"
 	"log"
 	"net/http"
+
+	"github.com/atlassian/go-artifactory/pkg/artifactory"
+	"github.com/ca-gip/artifactory-operator/internal/config"
+	"github.com/ca-gip/artifactory-operator/internal/utils"
+	"github.com/rs/zerolog"
 )
 
 type ArtifactoryInformation struct {
 	Tenant      string
-	ProjectName string // cr
+	ProjectName string   // cr
 	Stages      []string // cr
-	Location    string //param confmap
+	Location    string   //param confmap
 	Description string
+}
+
+type ArtifactoryService struct {
+	logger            zerolog.Logger
+	artifactoryClient *artifactory.Client
+}
+
+func NewArtifactoryService(operatorConfig *config.ArtifactoryOperatorConfig) (*ArtifactoryService, error) {
+	logger := utils.Log.With().Str("service", "artifactory").Logger()
+
+	tp := artifactory.BasicAuthTransport{
+		Username: operatorConfig.ArtifactoryServerUser,
+		Password: operatorConfig.ArtifactoryServerPassword,
+	}
+
+	client, err := artifactory.NewClient(operatorConfig.ArtifactoryServerUrl, tp.Client())
+	if err != nil {
+		logger.Info().Msgf("Couldn't create Artifactory client: %v", err)
+		return nil, err
+	}
+
+	result := &ArtifactoryService{
+		artifactoryClient: client,
+		logger:            logger,
+	}
+
+	return result, nil
 }
 
 func permissionName(permission string, fields *ArtifactoryInformation) string {
@@ -37,7 +68,7 @@ func userName(permission string, fields *ArtifactoryInformation) string {
 	return fmt.Sprintf("%s_%s_%s_%s", fields.Tenant, fields.ProjectName, fields.Location, permission)
 }
 
-func (fields *ArtifactoryInformation) ArtifactoryRepositoryCreate(client *artifactory.Client) {
+func (s *ArtifactoryService) ArtifactoryRepositoryCreate(fields *ArtifactoryInformation) {
 	for _, stage := range fields.Stages {
 
 		artifactoryRepositoryName := artifactoryRepositoryKey(fields, stage)
@@ -50,10 +81,10 @@ func (fields *ArtifactoryInformation) ArtifactoryRepositoryCreate(client *artifa
 			Description:     artifactory.String(fields.Description),
 		}
 
-		existingRepo, response, err := client.Repositories.GetLocal(context.Background(), artifactoryRepositoryName)
+		existingRepo, response, err := s.artifactoryClient.Repositories.GetLocal(context.Background(), artifactoryRepositoryName)
 
 		if response.StatusCode == http.StatusBadRequest && err != nil {
-			resp, error := client.Repositories.CreateLocal(context.Background(), &repo)
+			resp, error := s.artifactoryClient.Repositories.CreateLocal(context.Background(), &repo)
 			if error != nil {
 				log.Printf(err.Error())
 			} else if resp.StatusCode == http.StatusOK {
@@ -62,7 +93,7 @@ func (fields *ArtifactoryInformation) ArtifactoryRepositoryCreate(client *artifa
 		} else if response.StatusCode == http.StatusUnauthorized {
 			log.Println("Unauthorized access to Artifactory")
 		} else if response.StatusCode == http.StatusOK && existingRepo != nil {
-			resp, error := client.Repositories.UpdateLocal(context.Background(), artifactoryRepositoryName, &repo)
+			resp, error := s.artifactoryClient.Repositories.UpdateLocal(context.Background(), artifactoryRepositoryName, &repo)
 			if error != nil {
 				log.Printf(err.Error())
 			} else if resp.StatusCode == http.StatusOK {
@@ -72,7 +103,7 @@ func (fields *ArtifactoryInformation) ArtifactoryRepositoryCreate(client *artifa
 	}
 }
 
-func (fields *ArtifactoryInformation) CreateArtifactoryGroup(client *artifactory.Client) {
+func (s *ArtifactoryService) CreateArtifactoryGroup(fields *ArtifactoryInformation) {
 
 	groupName := fmt.Sprintf("dl_artifactory_%s_%s", fields.Tenant, fields.ProjectName)
 	group := artifactory.Group{
@@ -80,7 +111,7 @@ func (fields *ArtifactoryInformation) CreateArtifactoryGroup(client *artifactory
 		Description: artifactory.String(fields.Description),
 	}
 
-	resp, err := client.Security.CreateOrReplaceGroup(context.Background(), groupName, &group)
+	resp, err := s.artifactoryClient.Security.CreateOrReplaceGroup(context.Background(), groupName, &group)
 	if err != nil {
 		log.Fatal(err)
 	} else {
@@ -106,19 +137,19 @@ func createArtifactoryUsers(client *artifactory.Client, userName string, email s
 	}
 }
 
-func (fields *ArtifactoryInformation) CreateArtifactoryUsers(client *artifactory.Client) {
+func (s *ArtifactoryService) CreateArtifactoryUsers(fields *ArtifactoryInformation) {
 
 	userNameRO := fmt.Sprintf("%s_%s_%s_k8s_reader", fields.Tenant, fields.ProjectName, fields.Location)
 	userEmailRO := fmt.Sprintf("%s@notanadress.ca.example.com", userNameRO)
 	groupsRO := &[]string{"readers"}
 	passwordRO := "toto"
-	createArtifactoryUsers(client, userNameRO, userEmailRO, passwordRO, groupsRO)
+	createArtifactoryUsers(s.artifactoryClient, userNameRO, userEmailRO, passwordRO, groupsRO)
 
 	userNameRW := fmt.Sprintf("%s_%s_%s_jenkins_writer", fields.Tenant, fields.ProjectName, fields.Location)
 	userEmailRW := fmt.Sprintf("%s@notanadress.ca.example.com", userNameRW)
 	groupsRW := &[]string{"readers"}
 	passwordRW := "toto"
-	createArtifactoryUsers(client, userNameRW, userEmailRW, passwordRW, groupsRW)
+	createArtifactoryUsers(s.artifactoryClient, userNameRW, userEmailRW, passwordRW, groupsRW)
 }
 
 func createArtifactoryPermissions(
@@ -147,7 +178,7 @@ func createArtifactoryPermissions(
 
 }
 
-func (fields *ArtifactoryInformation) CreateArtifactoryPermissions(client *artifactory.Client) {
+func (s *ArtifactoryService) CreateArtifactoryPermissions(fields *ArtifactoryInformation) {
 	repositories := []string{}
 	for _, stage := range fields.Stages {
 		repositories = append(repositories, artifactoryRepositoryKey(fields, stage))
@@ -158,7 +189,7 @@ func (fields *ArtifactoryInformation) CreateArtifactoryPermissions(client *artif
 	userPermissions := []string{"r"}
 	userRO := &map[string][]string{userNameRO: userPermissions}
 	createArtifactoryPermissions(
-		client,
+		s.artifactoryClient,
 		permissionNameRO,
 		repositories,
 		userRO,
@@ -174,7 +205,7 @@ func (fields *ArtifactoryInformation) CreateArtifactoryPermissions(client *artif
 	groupRW := &map[string][]string{groupNameRW: groupPermissionsRW}
 
 	createArtifactoryPermissions(
-		client,
+		s.artifactoryClient,
 		permissionNameRW,
 		repositories,
 		userRW,

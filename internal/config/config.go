@@ -12,6 +12,8 @@ type ArtifactoryOperatorConfig struct {
 	PasswordStoreSecretNamePrefix string
 	ClusterTenant                 *string
 	ArtifactoryServerUrl          string
+	ArtifactoryServerUser         string
+	ArtifactoryServerPassword     string
 }
 
 const (
@@ -62,6 +64,32 @@ func LoadConfig() (*ArtifactoryOperatorConfig, error) {
 		result.ArtifactoryServerUrl = artifactoryServerUrl
 	} else {
 		err := errors.New("ARTI_OP_ARTIFACTORY_SERVER_URL is required.")
+		return nil, err
+	}
+
+	artifactoryServerUser, ok := os.LookupEnv("ARTI_OP_ARTIFACTORY_SERVER_USER")
+	if ok {
+		if strings.TrimSpace(artifactoryServerUser) == "" {
+			err := errors.New("ARTI_OP_ARTIFACTORY_SERVER_USER is required, but empty.")
+			return nil, err
+		}
+
+		result.ArtifactoryServerUser = artifactoryServerUser
+	} else {
+		err := errors.New("ARTI_OP_ARTIFACTORY_SERVER_USER is required.")
+		return nil, err
+	}
+
+	artifactoryServerPassword, ok := os.LookupEnv("ARTI_OP_ARTIFACTORY_SERVER_PASSWORD")
+	if ok {
+		if strings.TrimSpace(artifactoryServerPassword) == "" {
+			err := errors.New("ARTI_OP_ARTIFACTORY_SERVER_PASSWORD is required, but empty.")
+			return nil, err
+		}
+
+		result.ArtifactoryServerPassword = artifactoryServerPassword
+	} else {
+		err := errors.New("ARTI_OP_ARTIFACTORY_SERVER_PASSWORD is required.")
 		return nil, err
 	}
 
