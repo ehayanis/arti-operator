@@ -20,24 +20,24 @@ type DockerConfigEntry struct {
 	Auth     string `json:"auth,omitempty"`
 }
 
-type ImagePullSecretsService struct {
+type DockerConfigSecretsService struct {
 	logger       zerolog.Logger
 	clientConfig *rest.Config
 }
 
-type ImagePullSecretRegistry struct {
+type DockerConfigRegistryInfo struct {
 	Url      string
 	Username string
 	Password string
 }
 
-type ImagePullSecret struct {
+type DockerConfigSecret struct {
 	Name       string
-	Registries []ImagePullSecretRegistry
+	Registries []DockerConfigRegistryInfo
 }
 
-func NewImagePullSecretsService(kconfig *rest.Config) *ImagePullSecretsService {
-	result := &ImagePullSecretsService{
+func NewDockerConfigSecretsService(kconfig *rest.Config) *DockerConfigSecretsService {
+	result := &DockerConfigSecretsService{
 		logger:       utils.Log.With().Str("service", "imagepullsecrets").Logger(),
 		clientConfig: kconfig,
 	}
@@ -45,7 +45,7 @@ func NewImagePullSecretsService(kconfig *rest.Config) *ImagePullSecretsService {
 	return result
 }
 
-func (s *ImagePullSecretsService) CreateOrUpdateImagePullSecret(namespace string, ips *ImagePullSecret) (*v1.Secret, error) {
+func (s *DockerConfigSecretsService) CreateOrUpdateDockerConfigSecret(namespace string, ips *DockerConfigSecret) (*v1.Secret, error) {
 	secret, err := s.generateSecretObject(ips)
 
 	if err != nil {
@@ -65,7 +65,7 @@ func (s *ImagePullSecretsService) CreateOrUpdateImagePullSecret(namespace string
 
 	if err != nil {
 		if k8serrors.IsAlreadyExists(err) {
-			// Secret already exists replace it with our version
+			// Secret already exists, replace it with our version
 			updatedSecret, err := secretsClient.Update(secret)
 
 			if err != nil {
@@ -81,7 +81,7 @@ func (s *ImagePullSecretsService) CreateOrUpdateImagePullSecret(namespace string
 	return createdSecret, nil
 }
 
-func (s *ImagePullSecretsService) generateSecretObject(ips *ImagePullSecret) (*v1.Secret, error) {
+func (s *DockerConfigSecretsService) generateSecretObject(ips *DockerConfigSecret) (*v1.Secret, error) {
 	registriesBlocks := map[string]DockerConfigEntry{}
 
 	for _, elt := range ips.Registries {
@@ -97,8 +97,6 @@ func (s *ImagePullSecretsService) generateSecretObject(ips *ImagePullSecret) (*v
 	if err != nil {
 		return nil, err
 	}
-
-	// encodedDockerConfig := base64.StdEncoding.EncodeToString(cleartextDockerConfig)
 
 	secret := &v1.Secret{
 		Type: v1.SecretTypeDockerConfigJson,
@@ -123,16 +121,12 @@ func getAuthStringFromUsernamePassword(username, password string) string {
 	return base64AuthString
 }
 
-func getDockerConfigRegistryBlock(registry *ImagePullSecretRegistry) DockerConfigEntry {
+func getDockerConfigRegistryBlock(registry *DockerConfigRegistryInfo) DockerConfigEntry {
 	entry := DockerConfigEntry{
 		Username: registry.Username,
 		Password: registry.Password,
 		Auth:     getAuthStringFromUsernamePassword(registry.Username, registry.Password),
 	}
-
-	// registryBlock := map[string]DockerConfigEntry{
-	// 	registry.Url: entry,
-	// }
 
 	return entry
 }

@@ -16,19 +16,23 @@ func main() {
 		os.Exit(1)
 	}
 
-	namespace := os.Args[1]
+	namespace := "trololo"
 
-	ipsService := services.NewImagePullSecretsService(kconfig)
+	if len(os.Args) > 1 {
+		namespace = os.Args[1]
+	}
 
-	secretInput := &services.ImagePullSecret{
+	ipsService := services.NewDockerConfigSecretsService(kconfig)
+
+	secretInput := &services.DockerConfigSecret{
 		Name: "myips",
-		Registries: []services.ImagePullSecretRegistry{
-			services.ImagePullSecretRegistry{
+		Registries: []services.DockerConfigRegistryInfo{
+			services.DockerConfigRegistryInfo{
 				Url:      "trololo.com",
 				Username: "mat",
 				Password: "RevePasJeVaisLeChanger",
 			},
-			services.ImagePullSecretRegistry{
+			services.DockerConfigRegistryInfo{
 				Url:      "scm.sws.cagip.gca",
 				Username: "garstecki_m",
 				Password: "UnMotdePasse2",
@@ -36,11 +40,14 @@ func main() {
 		},
 	}
 
-	secret, err := ipsService.CreateOrUpdateImagePullSecret(namespace, secretInput)
+	secret, err := ipsService.CreateOrUpdateDockerConfigSecret(namespace, secretInput)
 
 	if err != nil {
 		fmt.Println("Error while generating secret:", err)
 		os.Exit(1)
 	}
+	fmt.Println("Put secret :")
+	fmt.Println("---------------------------------------------------")
 	fmt.Println(secret)
+	fmt.Println("---------------------------------------------------")
 }
