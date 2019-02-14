@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"strings"
 
+	"github.com/ca-gip/artifactory-operator/internal/config"
 	"github.com/ca-gip/artifactory-operator/internal/utils"
 	"github.com/rs/zerolog"
 	v1 "k8s.io/api/core/v1"
@@ -21,10 +22,10 @@ type PasswordStoreService struct {
 	clientConfig     *rest.Config
 }
 
-func NewPasswordStoreService(kconfig *rest.Config) *PasswordStoreService {
+func NewPasswordStoreService(kconfig *rest.Config, operatorConfig *config.ArtifactoryOperatorConfig) *PasswordStoreService {
 	result := &PasswordStoreService{
-		secretsNamespace: "kube-system",
-		secretNamePrefix: "artifactory-user",
+		secretsNamespace: operatorConfig.PasswordStoreBackendNamespace,
+		secretNamePrefix: operatorConfig.PasswordStoreSecretNamePrefix,
 		logger:           utils.Log.With().Str("service", "passwordstore").Logger(),
 		clientConfig:     kconfig,
 	}

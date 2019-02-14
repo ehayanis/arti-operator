@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"strings"
 
+	"github.com/ca-gip/artifactory-operator/internal/config"
 	"github.com/ca-gip/artifactory-operator/internal/utils"
 	"github.com/rs/zerolog"
 	v1 "k8s.io/api/core/v1"
@@ -36,7 +37,7 @@ type DockerConfigSecret struct {
 	Registries []DockerConfigRegistryInfo
 }
 
-func NewDockerConfigSecretsService(kconfig *rest.Config) *DockerConfigSecretsService {
+func NewDockerConfigSecretsService(kconfig *rest.Config, operatorConfig *config.ArtifactoryOperatorConfig) *DockerConfigSecretsService {
 	result := &DockerConfigSecretsService{
 		logger:       utils.Log.With().Str("service", "imagepullsecrets").Logger(),
 		clientConfig: kconfig,
