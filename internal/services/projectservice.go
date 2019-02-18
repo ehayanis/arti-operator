@@ -22,7 +22,7 @@ func NewProjectService(operatorConfig *config.ArtifactoryOperatorConfig, dockerC
 
 	parsedArtifactoryUri, err := url.Parse(operatorConfig.ArtifactoryServerUrl)
 	if err != nil {
-		logger.Error().Msgf("Couldn't parse Artifactory URI:", err)
+		logger.Error().Msgf("Couldn't parse Artifactory URI: %v", err)
 		return nil, err
 	}
 

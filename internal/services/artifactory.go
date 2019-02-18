@@ -91,7 +91,7 @@ func (s *ArtifactoryService) ArtifactoryRepositoryCreate(fields *ArtifactoryInfo
 
 		if err != nil {
 			if response == nil {
-				s.logger.Error().Msgf("Unidentified error creating repo %v: %v", err)
+				s.logger.Error().Msgf("Unidentified error creating repo: %v", err)
 				return result, err
 			}
 			if response.StatusCode == http.StatusBadRequest {
