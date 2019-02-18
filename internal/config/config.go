@@ -10,7 +10,6 @@ type ArtifactoryOperatorConfig struct {
 	ClusterLocation               string
 	PasswordStoreBackendNamespace string
 	PasswordStoreSecretNamePrefix string
-	ClusterTenant                 *string
 	ArtifactoryServerUrl          string
 	ArtifactoryServerUser         string
 	ArtifactoryServerPassword     string
@@ -42,16 +41,6 @@ func LoadConfig() (*ArtifactoryOperatorConfig, error) {
 	passwordStoreSecretNamePrefix, ok := os.LookupEnv("ARTI_OP_PASSWORDSTORE_SECRET_NAME_PREFIX")
 	if ok {
 		result.PasswordStoreSecretNamePrefix = passwordStoreSecretNamePrefix
-	}
-
-	clusterTenant, ok := os.LookupEnv("ARTI_OP_CLUSTER_TENANT")
-	if ok {
-		if strings.TrimSpace(clusterTenant) == "" {
-			err := errors.New("ARTI_OP_CLUSTER_TENANT is empty. Undefine the variable if you want it unset.")
-			return nil, err
-		}
-
-		result.ClusterTenant = &clusterTenant
 	}
 
 	artifactoryServerUrl, ok := os.LookupEnv("ARTI_OP_ARTIFACTORY_SERVER_URL")
