@@ -1,9 +1,9 @@
-.PHONY: all
+.PHONY: build darwin linux image release dep
 
 REPO= github.com/ca-gip/artifactory-operator
-IMAGE= artifactory-operator
-TAG= dev
-DOCKER_REPO= cagip
+IMAGE ?= artifactory-operator
+TAG ?= dev
+DOCKER_REPO ?= cagip
 
 
 
