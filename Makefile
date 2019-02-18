@@ -1,4 +1,4 @@
-.PHONY: build darwin linux image release dep
+.PHONY: build darwin linux image release dep test
 
 REPO= github.com/ca-gip/artifactory-operator
 IMAGE ?= artifactory-operator
@@ -27,3 +27,5 @@ release:
 dep:
 	glide install
 
+test:
+	go test ./... -v
