@@ -59,14 +59,14 @@ func WatchProjects() cache.Store {
 	passwordStoreService := services.NewPasswordStoreService(kconfig, operatorConfig)
 	artifactoryService, err := services.NewArtifactoryService(operatorConfig, passwordStoreService)
 	if err != nil {
-		logger.Error().Msgf("Couldn't create Artifactory service:", err)
+		logger.Error().Msgf("Couldn't create Artifactory service: %v", err)
 	}
 
 	dockerConfigSecretsService := services.NewDockerConfigSecretsService(kconfig, operatorConfig)
 
 	projectService, err := services.NewProjectService(operatorConfig, dockerConfigSecretsService, artifactoryService)
 	if err != nil {
-		logger.Error().Msgf("Couldn't create Project service:", err)
+		logger.Error().Msgf("Couldn't create Project service: %v", err)
 	}
 
 	watchlist := cache.NewListWatchFromClient(v3.CagipV1().RESTClient(), "projects", v12.NamespaceAll, fields.Everything())
