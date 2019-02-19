@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/atlassian/go-artifactory/pkg/artifactory"
 	"github.com/ca-gip/artifactory-operator/internal/config"
@@ -60,9 +61,12 @@ func permissionName(permission string, fields *ArtifactoryInformation) string {
 }
 
 func artifactoryRepositoryKey(fields *ArtifactoryInformation, stage string) string {
+	tenantPrefix := fields.Tenant + "-"
+	projectNameWithoutTenant := strings.TrimPrefix(fields.ProjectName, tenantPrefix)
+
 	return fmt.Sprintf("%s-%s-docker-%s-%s",
 		fields.Tenant,
-		fields.ProjectName,
+		projectNameWithoutTenant,
 		stage,
 		fields.Location)
 }
