@@ -47,7 +47,7 @@ func NewDockerConfigSecretsService(kconfig *rest.Config, operatorConfig *config.
 }
 
 func (s *DockerConfigSecretsService) CreateOrUpdateDockerConfigSecret(namespace string, ips *DockerConfigSecret) (*v1.Secret, error) {
-	secret, err := s.generateSecretObject(ips)
+	secret, err := generateSecretObject(ips)
 
 	if err != nil {
 		return nil, err
@@ -83,7 +83,7 @@ func (s *DockerConfigSecretsService) CreateOrUpdateDockerConfigSecret(namespace 
 	return createdSecret, nil
 }
 
-func (s *DockerConfigSecretsService) generateSecretObject(ips *DockerConfigSecret) (*v1.Secret, error) {
+func generateSecretObject(ips *DockerConfigSecret) (*v1.Secret, error) {
 	registriesBlocks := map[string]DockerConfigEntry{}
 
 	for _, elt := range ips.Registries {

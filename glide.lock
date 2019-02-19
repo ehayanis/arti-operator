@@ -1,5 +1,5 @@
-hash: 9a8283b8eef82d6d9f794a5d80ed8196ecb1d3c0902268d43d2abac681b67b64
-updated: 2019-02-13T16:50:59.120463497+01:00
+hash: f0046bc2380ca0eeb6b95f0e991bc588aa8f4ae9f8de41eb7bef170ed92dd345
+updated: 2019-02-19T17:42:04.441923801+01:00
 imports:
 - name: github.com/atlassian/go-artifactory
   version: c4928bc55cc8f5bd782d90da7919f6ccdcb2f839
@@ -73,6 +73,10 @@ imports:
   - internal/json
 - name: github.com/spf13/pflag
   version: 583c0c0531f06d5278b7d917446061adc344b5cd
+- name: github.com/stretchr/testify
+  version: ffdc059bfe9ce6a4e144ba849dbedead332c6053
+  subpackages:
+  - assert
 - name: golang.org/x/crypto
   version: de0752318171da717af4ce24d0a2e8626afaeb11
   subpackages:
