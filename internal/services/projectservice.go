@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"net/url"
 	"strings"
 
@@ -15,6 +16,7 @@ type ProjectService struct {
 	dockerConfigSecretsService *DockerConfigSecretsService
 	artifactoryService         *ArtifactoryService
 	artifactoryHostBase        string
+	DefaultClusterTenant       string
 	clusterLocation            string
 }
 
@@ -31,6 +33,7 @@ func NewProjectService(operatorConfig *config.ArtifactoryOperatorConfig, dockerC
 		logger: logger,
 		dockerConfigSecretsService: dockerConfigSecretsService,
 		artifactoryService:         artifactoryService,
+		DefaultClusterTenant:       operatorConfig.DefaultClusterTenant,
 		clusterLocation:            operatorConfig.ClusterLocation,
 		artifactoryHostBase:        parsedArtifactoryUri.Host,
 	}
@@ -108,11 +111,22 @@ func (s *ProjectService) createArtifactoryResources(project *kubiv1.Project) ([]
 }
 
 func (s *ProjectService) generateArtifactoryFields(project *kubiv1.Project) (*ArtifactoryInformation, error) {
-	tenantPrefix := project.Spec.Tenant + "-"
+	if strings.TrimSpace(project.Spec.Project) == "" {
+		return nil, errors.New("Spec.Project empty.")
+	}
+
+	var actualTenant string
+	if strings.TrimSpace(project.Spec.Tenant) == "" {
+		actualTenant = s.DefaultClusterTenant
+	} else {
+		actualTenant = project.Spec.Tenant
+	}
+
+	tenantPrefix := actualTenant + "-"
 	projectNameWithoutTenant := strings.TrimPrefix(project.Spec.Project, tenantPrefix)
 
 	fieldsArtifactory := &ArtifactoryInformation{
-		Tenant:      project.Spec.Tenant,
+		Tenant:      actualTenant,
 		ProjectName: projectNameWithoutTenant,
 		Stages:      project.Spec.Stages,
 		Location:    s.clusterLocation,

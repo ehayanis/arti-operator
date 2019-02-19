@@ -8,6 +8,7 @@ import (
 
 type ArtifactoryOperatorConfig struct {
 	ClusterLocation               string
+	DefaultClusterTenant          string
 	PasswordStoreBackendNamespace string
 	PasswordStoreSecretNamePrefix string
 	ArtifactoryServerUrl          string
@@ -31,6 +32,20 @@ func LoadConfig() (*ArtifactoryOperatorConfig, error) {
 	clusterLocation, ok := os.LookupEnv("ARTI_OP_CLUSTER_LOCATION")
 	if ok {
 		result.ClusterLocation = clusterLocation
+	}
+
+	clusterTenant, ok := os.LookupEnv("ARTI_OP_DEFAULT_CLUSTER_TENANT")
+	if ok {
+		if strings.TrimSpace(clusterTenant) == "" {
+			err := errors.New("ARTI_OP_DEFAULT_CLUSTER_TENANT is required, but empty.")
+			return nil, err
+		}
+
+		result.DefaultClusterTenant = clusterTenant
+	} else {
+		err := errors.New("ARTI_OP_DEFAULT_CLUSTER_TENANT is required.")
+		return nil, err
+
 	}
 
 	passwordStoreBackendNamespace, ok := os.LookupEnv("ARTI_OP_PASSWORDSTORE_BACKEND_NAMESPACE")

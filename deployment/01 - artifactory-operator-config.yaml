@@ -5,6 +5,10 @@ metadata:
 data:
   # Required params
 
+  # The default tenant for projects of the cluster. Used when no tenant is provided in the
+  # Kubi Project object.
+  ARTI_OP_DEFAULT_CLUSTER_TENANT: ""
+
   # The URL for the Artifactory server where registries & users will be created.
   # Put a full URL to the Artifactory instance, including the scheme. Ex: https://an.artifactory.instance/
   ARTI_OP_ARTIFACTORY_SERVER_URL: ""
