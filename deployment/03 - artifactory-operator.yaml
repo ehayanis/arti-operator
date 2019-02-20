@@ -50,7 +50,7 @@ spec:
       serviceAccountName: artifactory-operator-user
       containers:
         - name: artifactory-operator
-          image: cagip/artifactory-operator:latest
+          image: silca-tools-docker-scratch-intranet.registry.saas.cagip.gca/artifactory-operator:dev
           imagePullPolicy: Always
           envFrom:
             - configMapRef:

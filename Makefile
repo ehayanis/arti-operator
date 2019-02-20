@@ -3,7 +3,8 @@
 REPO= github.com/ca-gip/artifactory-operator
 IMAGE ?= artifactory-operator
 TAG ?= dev
-DOCKER_REPO ?= cagip
+DOCKER_REPO ?= silca-tools-docker-scratch-intranet.registry.saas.cagip.gca
+# DOCKER_REPO ?= cagip
 
 
 
