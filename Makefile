@@ -8,7 +8,7 @@ DOCKER_REPO ?= cagip
 
 
 build:
-	go build -v -o ./build/artifactory-operator -i $(GOPATH)/src/$(REPO)/cmd/main.go
+	CGO_ENABLED=0 go build -v -o ./build/artifactory-operator -i $(GOPATH)/src/$(REPO)/cmd/main.go
 
 darwin:
 	GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s" -o artifactory-operator  $(GOPATH)/src/$(REPO)/main.go
