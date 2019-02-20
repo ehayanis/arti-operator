@@ -13,7 +13,7 @@ rules:
   resources: ["secrets"]
   verbs: [ "*" ]
 - apiGroups: ["ca-gip.github.com"]
-  resources: [ "Project" ]
+  resources: [ "projects" ]
   verbs: [ "get", "list", "watch" ]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
