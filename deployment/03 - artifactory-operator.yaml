@@ -9,7 +9,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: artifactory-operator-role
 rules:
-- apiGroups: ["v1"]
+- apiGroups: [""]
   resources: ["secrets"]
   verbs: [ "*" ]
 - apiGroups: ["ca-gip.github.com"]
