@@ -99,3 +99,35 @@ The operator needs the rights to:
 - Create and update users.
 - Create and update groups.
 - Create and update Permission Targets.
+
+# Architecture
+
+## Workflow
+
+General workflow of the operator:
+![sequence diagram with Kubi, K8S and Artifactory](doc/Operator workflow.png)
+
+## Mapping of K8S and Artifactory resources
+
+TODO
+
+## Limitations
+
+### Multiple clusters with the same projects : passwords on one of the cluster will be incorrect
+
+If multiple K8S clusters host the same project, from the same entity, one of the clusters will have **incorrect passwords** for the Artifactory users.
+
+Scenario that causes this:
+- First cluster reacts to new project `entityA-projectTOTO-...`
+  - It creates new Artifactory users `entity1_projectTOTO_k8s_reader` and `_jenkins_writer`.
+  - It persists their passwords in the K8S cluster, **locally**.
+- Second cluster reacts to new project `entityA-projectTOTO-...`
+  - It doesn't find the passwords for the users locally (they are in the **other cluster**), so creates and stores new ones.
+  - It updates the Artifactory users with the new passwords.
+- The first cluster does not know this, and now has invalid passwords.
+
+**Possible solutions**
+
+- Store passwords globally, for example in a **single** Vault folder, the same for every K8S cluster of CAGIP.
+- Refactor Artifactory users : find a scheme that avoids sharing usernames between clusters.
+- Stop generating passwords with the operator : some LDAP-based solution ?

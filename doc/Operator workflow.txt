@@ -1,0 +1,14 @@
+# Edit with https://www.websequencediagrams.com/
+title Operator workflow
+
+Kubi->K8S: Create/Update Project instance
+K8S->arti-operator: Notify operator of creation/update
+note right of arti-operator: operator parses project
+arti-operator->artifactory: Create docker registries for project
+arti-operator->+K8S: get/create passwords for artifactory users
+note right of K8S: user passwords are persisted in K8S to avoid\nchanging the password on each minor update
+K8S->-arti-operator: Return passwords for users
+arti-operator->artifactory: Create project access users
+arti-operator->artifactory: Create project access groups
+arti-operator->artifactory: Create Permission targets to bind registries\nand users/groups
+arti-operator->K8S: Insert docker secret in Project namespace
