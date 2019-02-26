@@ -3,11 +3,14 @@ kind: ConfigMap
 metadata:
   name: artifactory-operator-config
 data:
-  # Required params
+  # *** Required params ***
+
+
+  # Location of the cluster : 'intranet' or 'internet'.
+  ARTI_OP_CLUSTER_LOCATION: ""
 
   # The default tenant for projects of the cluster. Used when no tenant is provided in the
   # Kubi Project object.
-  ARTI_OP_DEFAULT_CLUSTER_TENANT: ""
 
   # The URL for the Artifactory server where registries & users will be created.
   # Put a full URL to the Artifactory instance, including the scheme. Ex: https://an.artifactory.instance/
@@ -18,11 +21,7 @@ data:
   # but you should set it from a Secret (see the rest of the sample deployment).
   ARTI_OP_ARTIFACTORY_SERVER_USER: ""
 
-  # Optional params
-
-  # Location of the cluster : 'intranet' or 'internet'.
-  # Default value : 'intranet'.
-  # ARTI_OP_CLUSTER_LOCATION: intranet
+  # *** Optional params ***
 
   # Namespace where passwords for generated Artifactory users will be stored (in K8S Secrets).
   # Default value : 'kube-system'.
