@@ -25,6 +25,8 @@ The operator will :
 - Create a `dl_sampleorg_project1` group in Artifactory with RW rights on the above registries.
 - Create a [Docker registry secret](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/#create-a-secret-in-the-cluster-that-holds-your-authorization-token) named `project-registries` in the `sampleorg-projectA-development` namespace (same name as the project).
 
+# Building and deploying
+
 ## Build Requirements
 - Go 1.10 minimum (tested with v1.10.4).
 - [Glide](https://github.com/Masterminds/glide).
@@ -66,3 +68,34 @@ Then :
 ```bash
 kubectl apply -f deployment/*
 ```
+
+# Configuration
+
+`artifactory-operator` expects configuration through environment variables. They can be set in K8S ConfigMaps or secrets, see the manifests ion the `deployment/` directory.
+
+| Name                            | Description                          | Example                       | Mandatory | Default      |
+| :--------------                 | :-----------------------------:      | ----------------------------: | ---------:| ----------:  |
+|  **ARTI_OP_ARTIFACTORY_SERVER_URL**       |  *Artifactory server URL*           | `https://artifactory.example.com`      | `yes`     | -           |
+|  **ARTI_OP_ARTIFACTORY_SERVER_USER**              |  *Name of an Artifactory admin user*       | `admin` | `yes`     | -           |
+|  **ARTI_OP_ARTIFACTORY_SERVER_PASSWORD**             |  *Password for the Artifactory user*      | - | `yes`     | -           |
+|  **ARTI_OP_CLUSTER_LOCATION**        |  *K8S cluster location ('intranet' or 'extranet')*      | `intranet`  | `yes`     | -           |
+|  **ARTI_OP_PASSWORDSTORE_BACKEND_NAMESPACE**       |  *K8S namespace wher the operator will persist passwords generated for Artifactory users*| `kube-system`| `no`     | `kube-system`           |
+|  **ARTI_OP_PASSWORDSTORE_SECRET_NAME_PREFIX**                |  *Prefix added to the names of password secrets*            | `artifactory-user` | `yes  `     | `artifactory-user`           |
+
+# Required permissions
+
+## On Kubernetes
+The operator needs the rights to:
+- *Read* and *watch* the Project resource of Kubi: to trigger the operator.
+- *Read* and *Write* Secrets to any namespace:
+  - to deploy [Docker registry secrets](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/#create-a-secret-in-the-cluster-that-holds-your-authorization-token) to the namespaces associated with the Projects.
+  - To persist the generated Artifactory passwords in the `kube-system` namespace (or the one specified in `ARTI_OP_PASSWORDSTORE_BACKEND_NAMESPACE`) as opaque Secrets.
+
+Those rights are modelized in the `artifactory-operator-role` ClusterRole in `deployment/03 - artifactory-operator.yaml".
+
+## On Artifactory
+The operator needs the rights to:
+- Create Docker repositories.
+- Create and update users.
+- Create and update groups.
+- Create and update Permission Targets.
