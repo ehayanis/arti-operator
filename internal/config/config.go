@@ -2,13 +2,13 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 )
 
 type ArtifactoryOperatorConfig struct {
 	ClusterLocation               string
-	DefaultClusterTenant          string
 	PasswordStoreBackendNamespace string
 	PasswordStoreSecretNamePrefix string
 	ArtifactoryServerUrl          string
@@ -16,36 +16,32 @@ type ArtifactoryOperatorConfig struct {
 	ArtifactoryServerPassword     string
 }
 
+var AllowedClusterLocations = []string{"intranet", "extranet"}
+
 const (
-	DefaultClusterLocation               = "intranet"
 	DefaultPasswordStoreBackendNamespace = "kube-system"
 	DefaultPasswordStoreSecretNamePrefix = "artifactory-user"
 )
 
 func LoadConfig() (*ArtifactoryOperatorConfig, error) {
 	result := &ArtifactoryOperatorConfig{
-		ClusterLocation:               DefaultClusterLocation,
 		PasswordStoreBackendNamespace: DefaultPasswordStoreBackendNamespace,
 		PasswordStoreSecretNamePrefix: DefaultPasswordStoreSecretNamePrefix,
 	}
 
+	// TODO : passer par la lib https://github.com/go-ozzo/ozzo-validation pour valider la conf
+
 	clusterLocation, ok := os.LookupEnv("ARTI_OP_CLUSTER_LOCATION")
 	if ok {
-		result.ClusterLocation = clusterLocation
-	}
-
-	clusterTenant, ok := os.LookupEnv("ARTI_OP_DEFAULT_CLUSTER_TENANT")
-	if ok {
-		if strings.TrimSpace(clusterTenant) == "" {
-			err := errors.New("ARTI_OP_DEFAULT_CLUSTER_TENANT is required, but empty.")
+		clusterLocation, err := validateClusterLocation(clusterLocation)
+		if err != nil {
 			return nil, err
 		}
 
-		result.DefaultClusterTenant = clusterTenant
+		result.ClusterLocation = clusterLocation
 	} else {
-		err := errors.New("ARTI_OP_DEFAULT_CLUSTER_TENANT is required.")
+		err := errors.New("ARTI_OP_CLUSTER_LOCATION is required.")
 		return nil, err
-
 	}
 
 	passwordStoreBackendNamespace, ok := os.LookupEnv("ARTI_OP_PASSWORDSTORE_BACKEND_NAMESPACE")
@@ -98,4 +94,15 @@ func LoadConfig() (*ArtifactoryOperatorConfig, error) {
 	}
 
 	return result, nil
+}
+
+func validateClusterLocation(location string) (string, error) {
+	trimmedClusterLocation := strings.TrimSpace(location)
+
+	for _, candidateLoc := range AllowedClusterLocations {
+		if trimmedClusterLocation == candidateLoc {
+			return trimmedClusterLocation, nil
+		}
+	}
+	return "", fmt.Errorf("ARTI_OP_CLUSTER_LOCATION is required and must be one of %v.", AllowedClusterLocations)
 }

@@ -16,7 +16,6 @@ type ProjectService struct {
 	dockerConfigSecretsService *DockerConfigSecretsService
 	artifactoryService         *ArtifactoryService
 	artifactoryHostBase        string
-	DefaultClusterTenant       string
 	clusterLocation            string
 }
 
@@ -33,7 +32,6 @@ func NewProjectService(operatorConfig *config.ArtifactoryOperatorConfig, dockerC
 		logger: logger,
 		dockerConfigSecretsService: dockerConfigSecretsService,
 		artifactoryService:         artifactoryService,
-		DefaultClusterTenant:       operatorConfig.DefaultClusterTenant,
 		clusterLocation:            operatorConfig.ClusterLocation,
 		artifactoryHostBase:        parsedArtifactoryUri.Host,
 	}
@@ -115,18 +113,13 @@ func (s *ProjectService) generateArtifactoryFields(project *kubiv1.Project) (*Ar
 		return nil, errors.New("Spec.Project empty.")
 	}
 
-	var actualTenant string
 	if strings.TrimSpace(project.Spec.Tenant) == "" {
-		actualTenant = s.DefaultClusterTenant
-	} else {
-		actualTenant = project.Spec.Tenant
+		return nil, errors.New("Spec.Tenant empty.")
 	}
 
-	tenantPrefix := actualTenant + "-"
-	projectNameWithoutTenant := strings.TrimPrefix(project.Spec.Project, tenantPrefix)
-
+	projectNameWithoutTenant := stripTenantInProjectName(project.Spec.Tenant, project.Spec.Project)
 	fieldsArtifactory := &ArtifactoryInformation{
-		Tenant:      actualTenant,
+		Tenant:      project.Spec.Tenant,
 		ProjectName: projectNameWithoutTenant,
 		Stages:      project.Spec.Stages,
 		Location:    s.clusterLocation,
@@ -134,4 +127,10 @@ func (s *ProjectService) generateArtifactoryFields(project *kubiv1.Project) (*Ar
 	}
 
 	return fieldsArtifactory, nil
+}
+
+func stripTenantInProjectName(tenant, projectName string) string {
+	tenantPrefix := tenant + "-"
+	return strings.TrimPrefix(projectName, tenantPrefix)
+
 }
