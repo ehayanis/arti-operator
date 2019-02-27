@@ -111,7 +111,7 @@ General workflow of the operator:
 
 ![mapping between resources created by operator](doc/operator resources mapping.png)
 
-
+**Note:** An instance of a Kubi Project corresponds conceptually to a *project environment*, one K8S Namespace. Kubi Projects which share `entity` and `project` values will target the *same Artifactory users and registries*.
 
 ## Limitations
 
@@ -131,10 +131,15 @@ Scenario that causes this:
 **Possible solutions**
 
 - Store passwords globally, for example in a **single** Vault folder, the same for every K8S cluster of CAGIP.
-- Refactor Artifactory users : find a scheme that avoids sharing usernames between clusters.
+- Refactor Artifactory users : find a scheme that avoids sharing usernames between clusters. 
 - Stop generating passwords with the operator : some LDAP-based solution ?
+- See what [Arti auth tokens](https://gitlab.com/emmanuel.fortin/artifactory-operator/tree/services_artifactory) can do ?
 
 ## TODO
 
 - Better parsing and validation of configuration : use https://github.com/go-ozzo/ozzo-validation
 - Implement integration tests or mocked tests for the code that queries Artifactory and K8S.
+- Add some retry on operations at several levels to handle temporary errors:
+  - Maybe retry the whole event handling itself.
+  - Retry the dockerconfigsecret creation, might fail if the customer Namespace isn't created quickly enough.
+  - Retry Artifactory operations if Artifactory is unavailable.
