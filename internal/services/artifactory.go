@@ -27,6 +27,18 @@ type ArtifactoryService struct {
 	artifactoryUrl       string
 }
 
+// HACK (MAT):
+// Since the access user is shared between Namespaces, we need to create
+// all registries for the project even if they are not referenced in the Project object.
+// Otherwise, we would remove access rights to some registries if a new Project object comes in.
+//
+// Ex: dev NS has access to scratch, prod to stable : the user needs to have access to both registries,
+// but this is not visible in the Project object of each.
+//
+// So we always create all registries in this list and grant rights to them to the user, even if only
+// some are referenced in the Project.
+var AvailableArtifactoryStages = []string{"scratch", "staging", "stable"}
+
 func NewArtifactoryService(operatorConfig *config.ArtifactoryOperatorConfig, PasswordStoreService *PasswordStoreService) (*ArtifactoryService, error) {
 	logger := utils.Log.With().Str("service", "artifactory").Logger()
 
@@ -71,13 +83,28 @@ func userName(permission string, fields *ArtifactoryInformation) string {
 	return fmt.Sprintf("%s_%s_%s_%s", fields.Tenant, fields.ProjectName, fields.Location, permission)
 }
 
+func stageInFields(stage string, fields *ArtifactoryInformation) bool {
+	for _, fieldsStage := range fields.Stages {
+		if stage == fieldsStage {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (s *ArtifactoryService) ArtifactoryRepositoryCreate(fields *ArtifactoryInformation) ([]string, error) {
 	result := []string{}
 
-	for _, stage := range fields.Stages {
-
+	// See comments on AvailableArtifactoryStages for why we don't pull the registry list from fields
+	for _, stage := range AvailableArtifactoryStages {
 		artifactoryRepositoryName := artifactoryRepositoryKey(fields, stage)
-		result = append(result, artifactoryRepositoryName)
+		s.logger.Debug().Msgf("Creating/updating repo %v", artifactoryRepositoryName)
+
+		// HACK : we create all repos, but only return those that must be inserted in the NS. See above.
+		if stageInFields(stage, fields) {
+			result = append(result, artifactoryRepositoryName)
+		}
 
 		repo := artifactory.LocalRepository{
 			Key:             artifactory.String(artifactoryRepositoryName),
@@ -225,7 +252,9 @@ func createArtifactoryPermissions(
 
 func (s *ArtifactoryService) CreateArtifactoryPermissions(fields *ArtifactoryInformation) {
 	repositories := []string{}
-	for _, stage := range fields.Stages {
+
+	// See comments on AvailableArtifactoryStages for why we don't pull the registry list from fields
+	for _, stage := range AvailableArtifactoryStages {
 		repositories = append(repositories, artifactoryRepositoryKey(fields, stage))
 	}
 
