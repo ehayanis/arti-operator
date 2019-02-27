@@ -109,7 +109,7 @@ General workflow of the operator:
 
 ## Mapping of K8S and Artifactory resources
 
-![mapping between resources created by operator](doc/operator resources mapping.svg)
+![mapping between resources created by operator](doc/operator resources mapping.png)
 
 
 
