@@ -1,4 +1,4 @@
-package: github.com/ca-gip/kubi-common
+package: github.com/ca-gip/artifactory-operator
 import:
 - package: github.com/ca-gip/kubi
   version: ^1.0.0
@@ -10,3 +10,14 @@ import:
 - package: github.com/ianlewis/controllerutil
   subpackages:
   - controller
+- package: github.com/atlassian/go-artifactory
+  subpackages:
+  - pkg/artifactory
+- package: k8s.io/client-go
+  version: ^10.0.0
+  subpackages:
+  - tools/clientcmd
+- package: github.com/stretchr/testify
+  version: ^1.3.0
+  subpackages:
+  - assert

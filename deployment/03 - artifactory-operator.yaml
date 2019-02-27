@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: artifactory-operator-user
+  namespace: kube-system
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: artifactory-operator-role
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: [ "*" ]
+- apiGroups: ["ca-gip.github.com"]
+  resources: [ "projects" ]
+  verbs: [ "get", "list", "watch" ]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: artifactory-operator-user
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: artifactory-operator-role
+subjects:
+  - kind: ServiceAccount
+    name: artifactory-operator-user
+    namespace: kube-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: artifactory-operator-deployment
+  namespace: kube-system
+  labels:
+    app: artifactory-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: artifactory-operator
+  template:
+    metadata:
+      labels:
+        app: artifactory-operator
+    spec:
+      serviceAccountName: artifactory-operator-user
+      containers:
+        - name: artifactory-operator
+          image: silca-tools-docker-scratch-intranet.registry.saas.cagip.gca/artifactory-operator:dev
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: artifactory-operator-config
+          env:
+            - name: ARTI_OP_ARTIFACTORY_SERVER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: artifactory-operator-secret
+                  key: artifactory_password

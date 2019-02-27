@@ -1,0 +1,18 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mat-e4-development
+---
+apiVersion: "ca-gip.github.com/v1"
+kind: Project
+metadata:
+  name: mat-e4-development
+spec:
+    tenant: mat
+    environment: development
+    project: e4
+    stages:
+      - scratch
+      - staging
+      - stable
