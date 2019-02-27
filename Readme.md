@@ -109,7 +109,9 @@ General workflow of the operator:
 
 ## Mapping of K8S and Artifactory resources
 
-TODO
+![mapping between resources created by operator](doc/operator resources mapping.svg)
+
+
 
 ## Limitations
 
@@ -131,3 +133,8 @@ Scenario that causes this:
 - Store passwords globally, for example in a **single** Vault folder, the same for every K8S cluster of CAGIP.
 - Refactor Artifactory users : find a scheme that avoids sharing usernames between clusters.
 - Stop generating passwords with the operator : some LDAP-based solution ?
+
+## TODO
+
+- Better parsing and validation of configuration : use https://github.com/go-ozzo/ozzo-validation
+- Implement integration tests or mocked tests for the code that queries Artifactory and K8S.
