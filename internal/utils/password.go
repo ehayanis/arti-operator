@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"math/rand"
 	"strings"
 	"time"
@@ -22,4 +24,10 @@ func GenerateRandomPassword(length int) string {
 	str := b.String()
 
 	return str
+}
+
+func GenerateMD5Password(text string) string {
+	hasher := md5.New()
+	hasher.Write([]byte(text))
+	return hex.EncodeToString(hasher.Sum(nil))
 }
