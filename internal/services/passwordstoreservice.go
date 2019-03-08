@@ -3,6 +3,8 @@ package services
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/ca-gip/artifactory-operator/internal/config"
@@ -91,7 +93,19 @@ func (s *PasswordStoreService) getSecretNameForUser(username string) string {
 
 func (s *PasswordStoreService) newPasswordSecretForUser(username string) (secret *v1.Secret) {
 	secretName := s.getSecretNameForUser(username)
-	password := utils.GenerateRandomPassword(12)
+	password := ""
+
+	r, err := regexp.Compile(".*_jenkins_write")
+	if err != nil {
+		s.logger.Error().Msgf("Regexp encountered a problem: %v", err)
+		return nil
+	} else if r.MatchString(username){
+		text := fmt.Sprintf("%s_jenkinsWriter", username)
+		password = utils.GenerateMD5Password(text)
+	} else {
+		text := fmt.Sprintf("%s_k8sReader", username)
+		password = utils.GenerateMD5Password(text)
+	}
 
 	secret = &v1.Secret{
 		Type: v1.SecretTypeOpaque,

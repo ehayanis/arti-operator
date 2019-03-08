@@ -92,13 +92,13 @@ func projectUpdate(old interface{}, new interface{}, projectService *services.Pr
 	newProject := new.(*v1.Project)
 
 	projectService.HandleProject(newProject)
-	utils.Log.Info().Msgf("Operator: the project %v has been updated, updating associated resources: namespace, networkpolicies.", newProject.Name)
+	utils.Log.Info().Msgf("Operator: the project %v has been updated, updating associated resources: artifactory repositories, users, groups and permissions.", newProject.Name)
 
 }
 
 func projectCreated(obj interface{}, projectService *services.ProjectService) {
 	project := obj.(*v1.Project)
 	projectService.HandleProject(project)
-	utils.Log.Info().Msgf("Operator: the project %v has been created, generating associated resources: namespace, networkpolicies.", project.Name)
+	utils.Log.Info().Msgf("Operator: the project %v has been created, generating associated resources: artifactory repositories, users, groups and permissions.", project.Name)
 
 }

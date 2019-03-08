@@ -1,0 +1,38 @@
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: mem-limit-range
+spec:
+  limits:
+    - default:
+        cpu: 100m
+        memory: 200Mi
+      defaultRequest:
+        cpu: 100m
+        memory: 100Mi
+      type: Container
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: busybox
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: busybox
+  template:
+    metadata:
+      labels:
+        run: busybox
+    spec:
+      containers:
+      - name: busybox
+        image: aug-e4-docker-scratch-intranet.registry.saas.cagip.gca/busybox:latest
+        imagePullPolicy: Always
+        command:
+          - sleep
+          - "3600"
+#      imagePullSecrets:
+#      - name: project-registries
