@@ -90,7 +90,6 @@ func WatchProjects() cache.Store {
 
 func projectUpdate(old interface{}, new interface{}, projectService *services.ProjectService) {
 	newProject := new.(*v1.Project)
-
 	err := projectService.HandleProject(newProject)
 	if err != nil {
 		utils.Log.Error().Msgf("Error when creating assets in artifactory: %v", err)
