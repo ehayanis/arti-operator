@@ -91,14 +91,21 @@ func WatchProjects() cache.Store {
 func projectUpdate(old interface{}, new interface{}, projectService *services.ProjectService) {
 	newProject := new.(*v1.Project)
 
-	projectService.HandleProject(newProject)
-	utils.Log.Info().Msgf("Operator: the project %v has been updated, updating associated resources: artifactory repositories, users, groups and permissions.", newProject.Name)
+	err := projectService.HandleProject(newProject)
+	if err != nil {
+		utils.Log.Error().Msgf("Error when creating assets in artifactory: %v", err)
+	} else {
+		utils.Log.Info().Msgf("Operator: the project %v has been updated, updating associated resources: artifactory repositories, users, groups and permissions.", newProject.Name)
+	}
 
 }
 
 func projectCreated(obj interface{}, projectService *services.ProjectService) {
 	project := obj.(*v1.Project)
-	projectService.HandleProject(project)
-	utils.Log.Info().Msgf("Operator: the project %v has been created, generating associated resources: artifactory repositories, users, groups and permissions.", project.Name)
-
+	err := projectService.HandleProject(project)
+	if err != nil {
+		utils.Log.Error().Msgf("Error when creating assets in artifactory: %v", err)
+	} else {
+		utils.Log.Info().Msgf("Operator: the project %v has been created, generating associated resources: artifactory repositories, users, groups and permissions.", project.Name)
+	}
 }
