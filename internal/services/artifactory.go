@@ -206,7 +206,28 @@ func (s *ArtifactoryService) CreateArtifactoryUsers(fields *ArtifactoryInformati
 	userNameRW := fmt.Sprintf("%s_%s_%s_jenkins_writer", fields.Tenant, fields.ProjectName, fields.Location)
 	userEmailRW := fmt.Sprintf("%s@notanadress.ca.example.com", userNameRW)
 	groupsRW := &[]string{"readers"}
-	passwordRW, err := s.PasswordStoreService.GetUserPassword(userNameRW)
+
+	passwordRW := ""
+	pathVault := fmt.Sprintf("/secret/artifactory/%s/%s/", fields.Tenant,fields.ProjectName)
+	vaultSecret, err := VaultReadSecret(s.PasswordStoreService.clientVault, pathVault)
+
+	if vaultSecret == nil {
+		s.logger.Debug().Msgf("Couldn't find existing password password for user %v: %v", userNameRW, err)
+		passwordRW, err := s.PasswordStoreService.GetUserPassword(userNameRW)
+		secretData := map[string]interface{}{
+			userNameRW: passwordRW,
+		}
+		_, err = VaultWriteSecret(s.PasswordStoreService.clientVault,secretData,pathVault)
+		if err != nil {
+			s.logger.Error().Msgf("Couldn't write secret in to vault for user %v: %v", userNameRW, err)
+		}
+		s.logger.Info().Msgf("Password created and stored in Vault server for user %v", userNameRW)
+	} else {
+		passwordRW = fmt.Sprintf("%v",vaultSecret.Data["registry_writer"])
+		s.logger.Info().Msgf("Password already exist in Vault server for user %v", userNameRW)
+	}
+
+//	passwordRW, err := s.PasswordStoreService.GetUserPassword(userNameRW)
 	if err != nil {
 		s.logger.Error().Msgf("Couldn't generate password for user %v: %v", userNameRW, err)
 		return nil, err

@@ -81,7 +81,16 @@ func WatchProjects() cache.Store {
 		},
 	})
 
-	logger.Info().Msgf("Operator configuration: %v", operatorConfig)
+	logger.Info().Msgf("[Operator configuration] ClusterLocation:%v," +
+		"PasswordBackendNamespace:%v," +
+		"ArtifactoryServerUrl:%v," +
+		"ArtifactoryServerUser:%v," +
+		"VaultServerUrl:%v",
+		operatorConfig.ClusterLocation,
+		operatorConfig.PasswordStoreBackendNamespace,
+		operatorConfig.ArtifactoryServerUrl,
+		operatorConfig.ArtifactoryServerUser,
+		operatorConfig.VaultServerUrl)
 	controller.Run(wait.NeverStop)
 	logger.Info().Msgf("Controller exited, terminating.")
 

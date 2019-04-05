@@ -14,6 +14,8 @@ type ArtifactoryOperatorConfig struct {
 	ArtifactoryServerUrl          string
 	ArtifactoryServerUser         string
 	ArtifactoryServerPassword     string
+	VaultServerToken              string
+	VaultServerUrl                string
 }
 
 var AllowedClusterLocations = []string{"intranet", "extranet"}
@@ -47,6 +49,24 @@ func LoadConfig() (*ArtifactoryOperatorConfig, error) {
 	passwordStoreBackendNamespace, ok := os.LookupEnv("ARTI_OP_PASSWORDSTORE_BACKEND_NAMESPACE")
 	if ok {
 		result.PasswordStoreBackendNamespace = passwordStoreBackendNamespace
+	}
+
+	vaultServerUrl, ok := os.LookupEnv("ARTI_OP_VAULT_SERVER_URL")
+	if ok {
+		if strings.TrimSpace(vaultServerUrl) == "" {
+			err := errors.New("ARTI_OP_VAULT_SERVER_URL is required, but empty.")
+			return nil, err
+		}
+
+		result.VaultServerUrl = vaultServerUrl
+	} else {
+		err := errors.New("ARTI_OP_VAULT_SERVER_URL is required.")
+		return nil, err
+	}
+
+	vaultToken, ok := os.LookupEnv("ARTI_OP_VAULT_TOKEN")
+	if ok {
+		result.VaultServerToken = vaultToken
 	}
 
 	passwordStoreSecretNamePrefix, ok := os.LookupEnv("ARTI_OP_PASSWORDSTORE_SECRET_NAME_PREFIX")

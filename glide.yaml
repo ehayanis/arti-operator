@@ -4,6 +4,10 @@ import:
   version: ^1.0.0
   subpackages:
   - pkg
+- package: github.com/hashicorp/vault
+  version: ^1.0.3
+  subpackages:
+  - api
 - package: k8s.io/code-generator
   subpackages:
   - _examples/crd/clientset/versioned
@@ -11,6 +15,7 @@ import:
   subpackages:
   - controller
 - package: github.com/atlassian/go-artifactory
+  version: ^1.2.0
   subpackages:
   - pkg/artifactory
 - package: k8s.io/client-go

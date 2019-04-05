@@ -10,7 +10,7 @@ RUN apk update && apk add ca-certificates
 COPY ./gca-cert-authorities/ /usr/local/share/ca-certificates/
 RUN update-ca-certificates
 
-FROM scratch
+FROM alpine
 WORKDIR /root/
 COPY --from=build /go/src/github.com/ca-gip/artifactory-operator/build/artifactory-operator .
 COPY --from=certificates-source /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/

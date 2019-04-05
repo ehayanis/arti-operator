@@ -4,13 +4,14 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+	"github.com/hashicorp/vault/api"
 	"regexp"
 	"strings"
 
 	"github.com/ca-gip/artifactory-operator/internal/config"
 	"github.com/ca-gip/artifactory-operator/internal/utils"
 	"github.com/rs/zerolog"
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -22,14 +23,25 @@ type PasswordStoreService struct {
 	secretNamePrefix string
 	logger           zerolog.Logger
 	clientConfig     *rest.Config
+	clientVault      *api.Client
 }
 
+
 func NewPasswordStoreService(kconfig *rest.Config, operatorConfig *config.ArtifactoryOperatorConfig) *PasswordStoreService {
+
+	logger := utils.Log.With().Str("service", "passwordstore").Logger()
+
+	clientVault, err := VaultConnect(operatorConfig.VaultServerUrl, operatorConfig.VaultServerToken)
+	if err != nil {
+		logger.Info().Err(err).Msgf("Cannot get Vault API : %v", err.Error())
+	}
+
 	result := &PasswordStoreService{
 		secretsNamespace: operatorConfig.PasswordStoreBackendNamespace,
 		secretNamePrefix: operatorConfig.PasswordStoreSecretNamePrefix,
-		logger:           utils.Log.With().Str("service", "passwordstore").Logger(),
+		logger:           logger,
 		clientConfig:     kconfig,
+		clientVault:      clientVault,
 	}
 	return result
 }
