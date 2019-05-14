@@ -3,32 +3,16 @@ package config
 import (
 	"errors"
 	"fmt"
+	"github.com/ca-gip/artifactory-operator/internal/types"
+	"github.com/ca-gip/artifactory-operator/internal/utils"
 	"os"
 	"strings"
 )
 
-type ArtifactoryOperatorConfig struct {
-	ClusterLocation               string
-	PasswordStoreBackendNamespace string
-	PasswordStoreSecretNamePrefix string
-	ArtifactoryServerUrl          string
-	ArtifactoryServerUser         string
-	ArtifactoryServerPassword     string
-	VaultServerToken              string
-	VaultServerUrl                string
-}
-
-var AllowedClusterLocations = []string{"intranet", "extranet"}
-
-const (
-	DefaultPasswordStoreBackendNamespace = "kube-system"
-	DefaultPasswordStoreSecretNamePrefix = "artifactory-user"
-)
-
-func LoadConfig() (*ArtifactoryOperatorConfig, error) {
-	result := &ArtifactoryOperatorConfig{
-		PasswordStoreBackendNamespace: DefaultPasswordStoreBackendNamespace,
-		PasswordStoreSecretNamePrefix: DefaultPasswordStoreSecretNamePrefix,
+func LoadConfig() (*types.ArtifactoryOperatorConfig, error) {
+	result := &types.ArtifactoryOperatorConfig{
+		PasswordStoreBackendNamespace: utils.DefaultPasswordStoreBackendNamespace,
+		PasswordStoreSecretNamePrefix: utils.DefaultPasswordStoreSecretNamePrefix,
 	}
 
 	// TODO : passer par la lib https://github.com/go-ozzo/ozzo-validation pour valider la conf
@@ -113,16 +97,68 @@ func LoadConfig() (*ArtifactoryOperatorConfig, error) {
 		return nil, err
 	}
 
+	xrayServerUrl, ok := os.LookupEnv("ARTI_OP_XRAY_SERVER_URL")
+	if ok {
+		if strings.TrimSpace(xrayServerUrl) == "" {
+			err := errors.New("ARTI_OP_XRAY_SERVER_URL is required, but empty.")
+			return nil, err
+		}
+
+		result.XrayServerUrl = xrayServerUrl
+	} else {
+		err := errors.New("ARTI_OP_XRAY_SERVER_URL is required.")
+		return nil, err
+	}
+
+	xrayServerUser, ok := os.LookupEnv("ARTI_OP_XRAY_SERVER_USER")
+	if ok {
+		if strings.TrimSpace(xrayServerUser) == "" {
+			err := errors.New("ARTI_OP_XRAY_SERVER_USER is required, but empty.")
+			return nil, err
+		}
+
+		result.XrayServerUser = xrayServerUser
+	} else {
+		err := errors.New("ARTI_OP_XRAY_SERVER_USER is required.")
+		return nil, err
+	}
+
+	xrayServerPassword, ok := os.LookupEnv("ARTI_OP_XRAY_SERVER_PASSWORD")
+	if ok {
+		if strings.TrimSpace(xrayServerPassword) == "" {
+			err := errors.New("ARTI_OP_XRAY_SERVER_PASSWORD is required, but empty.")
+			return nil, err
+		}
+
+		result.XrayServerPassword = xrayServerPassword
+	} else {
+		err := errors.New("ARTI_OP_XRAY_SERVER_PASSWORD is required.")
+		return nil, err
+	}
+
+	xrayBinMgrID, ok := os.LookupEnv("ARTI_OP_XRAY_BINMGRID")
+	if ok {
+		if strings.TrimSpace(xrayServerPassword) == "" {
+			err := errors.New("ARTI_OP_XRAY_BINMGRID is required, but empty.")
+			return nil, err
+		}
+
+		result.XrayBinMgrID = xrayBinMgrID
+	} else {
+		err := errors.New("ARTI_OP_XRAY_BINMGRID is required.")
+		return nil, err
+	}
+
 	return result, nil
 }
 
 func validateClusterLocation(location string) (string, error) {
 	trimmedClusterLocation := strings.TrimSpace(location)
 
-	for _, candidateLoc := range AllowedClusterLocations {
+	for _, candidateLoc := range utils.AllowedClusterLocations {
 		if trimmedClusterLocation == candidateLoc {
 			return trimmedClusterLocation, nil
 		}
 	}
-	return "", fmt.Errorf("ARTI_OP_CLUSTER_LOCATION is required and must be one of %v.", AllowedClusterLocations)
+	return "", fmt.Errorf("ARTI_OP_CLUSTER_LOCATION is required and must be one of %v.", utils.AllowedClusterLocations)
 }

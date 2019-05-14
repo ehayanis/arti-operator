@@ -3,41 +3,24 @@ package services
 import (
 	"encoding/base64"
 	"encoding/json"
+	"github.com/ca-gip/artifactory-operator/internal/types"
 	"strings"
 
-	"github.com/ca-gip/artifactory-operator/internal/config"
 	"github.com/ca-gip/artifactory-operator/internal/utils"
 	"github.com/rs/zerolog"
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
 
-type DockerConfigEntry struct {
-	Username string `json:"username,omitempty"`
-	Password string `json:"password,omitempty"`
-	Auth     string `json:"auth,omitempty"`
-}
-
 type DockerConfigSecretsService struct {
 	logger       zerolog.Logger
 	clientConfig *rest.Config
 }
 
-type DockerConfigRegistryInfo struct {
-	Url      string
-	Username string
-	Password string
-}
-
-type DockerConfigSecret struct {
-	Name       string
-	Registries []DockerConfigRegistryInfo
-}
-
-func NewDockerConfigSecretsService(kconfig *rest.Config, operatorConfig *config.ArtifactoryOperatorConfig) *DockerConfigSecretsService {
+func NewDockerConfigSecretsService(kconfig *rest.Config) *DockerConfigSecretsService {
 	result := &DockerConfigSecretsService{
 		logger:       utils.Log.With().Str("service", "imagepullsecrets").Logger(),
 		clientConfig: kconfig,
@@ -46,7 +29,7 @@ func NewDockerConfigSecretsService(kconfig *rest.Config, operatorConfig *config.
 	return result
 }
 
-func (s *DockerConfigSecretsService) CreateOrUpdateDockerConfigSecret(namespace string, ips *DockerConfigSecret) (*v1.Secret, error) {
+func (s *DockerConfigSecretsService) CreateOrUpdateDockerConfigSecret(namespace string, ips *types.DockerConfigSecret) (*v1.Secret, error) {
 	secret, err := generateSecretObject(ips)
 
 	if err != nil {
@@ -67,7 +50,7 @@ func (s *DockerConfigSecretsService) CreateOrUpdateDockerConfigSecret(namespace 
 	if err != nil {
 		if k8serrors.IsAlreadyExists(err) {
 			// Secret already exists, replace it with our version
-			s.logger.Debug().Msgf("Updating secret for namespace %v.", namespace)
+			s.logger.Info().Msgf("Updating secret for namespace %v.", namespace)
 			updatedSecret, err := secretsClient.Update(secret)
 
 			if err != nil {
@@ -83,14 +66,14 @@ func (s *DockerConfigSecretsService) CreateOrUpdateDockerConfigSecret(namespace 
 	return createdSecret, nil
 }
 
-func generateSecretObject(ips *DockerConfigSecret) (*v1.Secret, error) {
-	registriesBlocks := map[string]DockerConfigEntry{}
+func generateSecretObject(ips *types.DockerConfigSecret) (*v1.Secret, error) {
+	registriesBlocks := map[string]types.DockerConfigEntry{}
 
 	for _, elt := range ips.Registries {
 		registriesBlocks[elt.Url] = getDockerConfigRegistryBlock(&elt)
 	}
 
-	dockerConfigStruct := map[string]map[string]DockerConfigEntry{
+	dockerConfigStruct := map[string]map[string]types.DockerConfigEntry{
 		"auths": registriesBlocks,
 	}
 
@@ -123,8 +106,8 @@ func getAuthStringFromUsernamePassword(username, password string) string {
 	return base64AuthString
 }
 
-func getDockerConfigRegistryBlock(registry *DockerConfigRegistryInfo) DockerConfigEntry {
-	entry := DockerConfigEntry{
+func getDockerConfigRegistryBlock(registry *types.DockerConfigRegistryInfo) types.DockerConfigEntry {
+	entry := types.DockerConfigEntry{
 		Username: registry.Username,
 		Password: registry.Password,
 		Auth:     getAuthStringFromUsernamePassword(registry.Username, registry.Password),

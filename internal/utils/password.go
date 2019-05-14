@@ -8,6 +8,7 @@ import (
 	"time"
 )
 
+//FIXME Reactivate after vault migration
 func GenerateRandomPassword(length int) string {
 	rand.Seed(time.Now().UnixNano())
 
@@ -26,6 +27,7 @@ func GenerateRandomPassword(length int) string {
 	return str
 }
 
+//FIXME Temporarly wiating for vault switch
 func GenerateMD5Password(text string) string {
 	hasher := md5.New()
 	hasher.Write([]byte(text))

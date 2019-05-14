@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/ca-gip/artifactory-operator/internal/types"
 	"os"
 	"time"
 
@@ -9,8 +10,7 @@ import (
 	"github.com/ca-gip/artifactory-operator/internal/services"
 
 	"github.com/ca-gip/artifactory-operator/internal/utils"
-	v1 "github.com/ca-gip/kubi/pkg/apis/ca-gip/v1"
-	"github.com/ca-gip/kubi/pkg/client/clientset/versioned"
+	"github.com/ca-gip/kubi/pkg/apis/ca-gip/v1"
 	v12 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -19,22 +19,6 @@ import (
 
 func main() {
 
-	WatchProjects()
-}
-
-type operatorServices struct {
-	passwordStoreService       *services.PasswordStoreService
-	dockerConfigSecretsService *services.DockerConfigSecretsService
-}
-
-// Watch NetworkPolicyConfig, which is a config object for namespace network bubble
-// This CRD allow user to deploy global configuration for network configuration
-// for update, the default network config is update
-// for deletion, it is automatically recreated
-// for create, just create it
-func WatchProjects() cache.Store {
-	logger := utils.Log.With().Str("service", "watcher").Logger()
-
 	operatorConfig, err := config.LoadConfig()
 
 	if err != nil {
@@ -42,32 +26,19 @@ func WatchProjects() cache.Store {
 		os.Exit(1)
 	}
 
-	kconfig, err := utils.GetClientConfig()
+	WatchProjects(operatorConfig)
+}
 
-	if err != nil {
-		fmt.Println("Couldn't load K8S client config:", err)
-		os.Exit(1)
-	}
+// WatchProjects is going to instanciate Kubernetes Client and Services (Project, Artifactory and Xray).
+// It is going to listen the Projects CRD (on creation and updates) and create or update resources
+// (artifactory client, vault secrets, xray policies and watches) through their services
+func WatchProjects(operatorConfig *types.ArtifactoryOperatorConfig) cache.Store {
 
-	v3, err := versioned.NewForConfig(kconfig)
+	logger := utils.Log.With().Str("service", "watcher").Logger()
 
-	if err != nil {
-		fmt.Println("Couldn't create Kubi client:", err)
-		os.Exit(1)
-	}
+	kconfig, v3 := config.InstanciateKubernetesClients()
 
-	passwordStoreService := services.NewPasswordStoreService(kconfig, operatorConfig)
-	artifactoryService, err := services.NewArtifactoryService(operatorConfig, passwordStoreService)
-	if err != nil {
-		logger.Error().Msgf("Couldn't create Artifactory service: %v", err)
-	}
-
-	dockerConfigSecretsService := services.NewDockerConfigSecretsService(kconfig, operatorConfig)
-
-	projectService, err := services.NewProjectService(operatorConfig, dockerConfigSecretsService, artifactoryService)
-	if err != nil {
-		logger.Error().Msgf("Couldn't create Project service: %v", err)
-	}
+	projectService := config.InstanciateServices(kconfig, operatorConfig, logger)
 
 	watchlist := cache.NewListWatchFromClient(v3.CagipV1().RESTClient(), "projects", v12.NamespaceAll, fields.Everything())
 	resyncPeriod := 30 * time.Minute
@@ -77,29 +48,37 @@ func WatchProjects() cache.Store {
 			projectCreated(obj, projectService)
 		},
 		UpdateFunc: func(old interface{}, new interface{}) {
-			projectUpdate(old, new, projectService)
+			projectUpdate(new, projectService)
 		},
 	})
 
-	logger.Info().Msgf("[Operator configuration] ClusterLocation:%v," +
-		"PasswordBackendNamespace:%v," +
-		"ArtifactoryServerUrl:%v," +
-		"ArtifactoryServerUser:%v," +
+	logger.Info().Msgf("[Operator configuration] Version:0.1 ClusterLocation:%v,"+
+		"PasswordBackendNamespace:%v,"+
+		"ArtifactoryServerUrl:%v,"+
+		"ArtifactoryServerUser:%v,"+
 		"VaultServerUrl:%v",
 		operatorConfig.ClusterLocation,
 		operatorConfig.PasswordStoreBackendNamespace,
 		operatorConfig.ArtifactoryServerUrl,
 		operatorConfig.ArtifactoryServerUser,
 		operatorConfig.VaultServerUrl)
+
 	controller.Run(wait.NeverStop)
 	logger.Info().Msgf("Controller exited, terminating.")
 
 	return store
 }
 
-func projectUpdate(old interface{}, new interface{}, projectService *services.ProjectService) {
+func projectUpdate(new interface{}, projectService *services.ProjectService) {
 	newProject := new.(*v1.Project)
-	err := projectService.HandleProject(newProject)
+
+	err := utils.CheckMandatoryParameters(newProject)
+	if err != nil {
+		utils.Log.Error().Msgf("Error, project resource does not have mandatory parameter to fill Artifactory: %v", err)
+		return
+	}
+
+	err = projectService.HandleProject(newProject)
 	if err != nil {
 		utils.Log.Error().Msgf("Error when creating assets in artifactory: %v", err)
 	} else {
@@ -110,10 +89,18 @@ func projectUpdate(old interface{}, new interface{}, projectService *services.Pr
 
 func projectCreated(obj interface{}, projectService *services.ProjectService) {
 	project := obj.(*v1.Project)
-	err := projectService.HandleProject(project)
+
+	err := utils.CheckMandatoryParameters(project)
+	if err != nil {
+		utils.Log.Error().Msgf("Error, project resource does not have mandatory parameter to fill Artifactory: %v", err)
+		return
+	}
+
+	err = projectService.HandleProject(project)
 	if err != nil {
 		utils.Log.Error().Msgf("Error when creating assets in artifactory: %v", err)
 	} else {
 		utils.Log.Info().Msgf("Operator: the project %v has been created, generating associated resources: artifactory repositories, users, groups and permissions.", project.Name)
 	}
 }
+
