@@ -26,3 +26,5 @@ import:
   version: ^1.3.0
   subpackages:
   - assert
+- package: gitlab.com/aurelien.gabet/go-xray-cli
+  repo: https://gitlab.com/aurelien.gabet/go-xray-cli.git

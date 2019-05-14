@@ -7,7 +7,7 @@ RUN make build
 
 FROM alpine:latest as certificates-source
 RUN apk update && apk add ca-certificates
-COPY ./gca-cert-authorities/ /usr/local/share/ca-certificates/
+COPY assets/certificates /usr/local/share/ca-certificates/
 RUN update-ca-certificates
 
 FROM alpine

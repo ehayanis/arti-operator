@@ -1,7 +1,7 @@
 package services
 
 import (
-	"fmt"
+	"github.com/ca-gip/artifactory-operator/internal/utils"
 	"github.com/hashicorp/vault/api"
 )
 
@@ -13,7 +13,7 @@ func VaultConnect(vaultURL string, vaultBasePathToken string) (*api.Client, erro
 
 	client, err := api.NewClient(config)
 	if err != nil {
-		fmt.Println(err)
+		utils.Log.Error().Err(err)
 		return nil, err
 	}
 
@@ -22,21 +22,21 @@ func VaultConnect(vaultURL string, vaultBasePathToken string) (*api.Client, erro
 	return client, nil
 }
 
-func VaultWriteSecret(c *api.Client, secretData map[string]interface{}, path string) ( *api.Secret, error) {
+func VaultWriteSecret(c *api.Client, secretData map[string]interface{}, path string) (*api.Secret, error) {
 
 	secret, err := c.Logical().Write(path, secretData)
 	if err != nil {
-		fmt.Println(err)
+		utils.Log.Error().Err(err)
 		return nil, err
 	}
 	return secret, err
 }
 
-func VaultReadSecret(c *api.Client, path string) (*api.Secret, error){
+func VaultReadSecret(c *api.Client, path string) (*api.Secret, error) {
 
 	secret, err := c.Logical().Read(path)
 	if err != nil {
-		fmt.Println(err)
+		utils.Log.Error().Err(err)
 		return nil, err
 	}
 	return secret, err

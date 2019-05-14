@@ -1,6 +1,7 @@
 package services
 
 import (
+	"github.com/ca-gip/artifactory-operator/internal/types"
 	"strings"
 	"testing"
 
@@ -8,15 +9,15 @@ import (
 )
 
 func Test_generateSecretObject(t *testing.T) {
-	input := &DockerConfigSecret{
+	input := &types.DockerConfigSecret{
 		Name: "test-secret",
-		Registries: []DockerConfigRegistryInfo{
-			DockerConfigRegistryInfo{
+		Registries: []types.DockerConfigRegistryInfo{
+			{
 				Url:      "registry1.registries.example.com",
 				Username: "registry1_user",
 				Password: "registry1_password",
 			},
-			DockerConfigRegistryInfo{
+			{
 				Url:      "registry2.registries.example.com",
 				Username: "registry2_USER",
 				Password: "registry2_PASSWORD",

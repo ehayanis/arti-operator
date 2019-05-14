@@ -18,11 +18,11 @@ linux:
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s" -o artifactory-operator  $(GOPATH)/src/$(REPO)/main.go
 
 image:
-	docker build -t "$(DOCKER_REPO)/$(IMAGE):$(TAG)" .
+	docker build --build-arg HTTP_PROXY=http://127.0.0.1:3128  --build-arg HTTPS_PROXY=http://127.0.0.1:3128 --network=host -t "$(DOCKER_REPO)/$(IMAGE):$(TAG)" .
 	docker push "$(DOCKER_REPO)/$(IMAGE):$(TAG)"
 
 release:
-	docker build -t "$(DOCKER_REPO)/$(IMAGE):$(TAG)" .
+	docker build --build-arg HTTP_PROXY=http://127.0.0.1:3128  --build-arg HTTPS_PROXY=http://127.0.0.1:3128 --network=host -t "$(DOCKER_REPO)/$(IMAGE):$(TAG)" .
 	docker push "$(DOCKER_REPO)/$(IMAGE):$(TAG)"
 
 dep:

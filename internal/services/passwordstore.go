@@ -4,11 +4,11 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+	"github.com/ca-gip/artifactory-operator/internal/types"
 	"github.com/hashicorp/vault/api"
 	"regexp"
 	"strings"
 
-	"github.com/ca-gip/artifactory-operator/internal/config"
 	"github.com/ca-gip/artifactory-operator/internal/utils"
 	"github.com/rs/zerolog"
 	"k8s.io/api/core/v1"
@@ -26,8 +26,7 @@ type PasswordStoreService struct {
 	clientVault      *api.Client
 }
 
-
-func NewPasswordStoreService(kconfig *rest.Config, operatorConfig *config.ArtifactoryOperatorConfig) *PasswordStoreService {
+func NewPasswordStoreService(kconfig *rest.Config, operatorConfig *types.ArtifactoryOperatorConfig) *PasswordStoreService {
 
 	logger := utils.Log.With().Str("service", "passwordstore").Logger()
 
@@ -111,7 +110,7 @@ func (s *PasswordStoreService) newPasswordSecretForUser(username string) (secret
 	if err != nil {
 		s.logger.Error().Msgf("Regexp encountered a problem: %v", err)
 		return nil
-	} else if r.MatchString(username){
+	} else if r.MatchString(username) {
 		text := fmt.Sprintf("%s_jenkinsWriter", username)
 		password = utils.GenerateMD5Password(text)
 	} else {
