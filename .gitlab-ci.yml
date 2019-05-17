@@ -1,0 +1,18 @@
+stages:
+  - build
+
+build:
+  image: docker:latest
+  stage: build
+  variables:
+    IMAGE_BASE_NAME: silca-tools-docker-scratch-intranet.registry.saas.cagip.gca/artifactory-operator
+  only:
+    refs:
+      - master
+  except:
+    - tags
+  before_script:
+    - docker login -u silca-tools-docker-scratch-intranet -p $AD_PASSWD silca-tools-docker-scratch-intranet.registry.saas.cagip.gca
+  script:
+    - docker build --build-arg HTTP_PROXY=http://$PROXY_RUNNER --build-arg HTTPS_PROXY=http://$PROXY_RUNNER --network=host -t $IMAGE_BASE_NAME:$(cat version.txt)-${CI_COMMIT_SHA:0:8} .
+    - docker push $IMAGE_BASE_NAME:$(cat version.txt)-${CI_COMMIT_SHA:0:8}

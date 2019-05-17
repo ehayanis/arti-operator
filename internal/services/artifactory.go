@@ -224,16 +224,27 @@ func (s *ArtifactoryService) createArtifactoryPermissions(
 	group *map[string][]string,
 ) {
 
+	repositories := &artifactoryRepositoryNames
+
+	//check if permissions already exists
+	existingPermission, resp, err := client.Security.GetPermissionTargets(context.Background(), permissionName)
+	if err != nil {
+		s.logger.Error().Msgf("Error listing existing permissions : %v", err)
+	} else if existingPermission != nil {
+		*repositories = append(*repositories, *existingPermission.Repositories...)
+		*repositories = utils.Uniq(*repositories)
+	}
+
 	permissions := artifactory.PermissionTargets{
 		Name:         artifactory.String(permissionName),
-		Repositories: &artifactoryRepositoryNames,
+		Repositories: repositories,
 		Principals: &artifactory.Principals{
 			Users:  user,
 			Groups: group,
 		},
 	}
 
-	resp, err := client.Security.CreateOrReplacePermissionTargets(context.Background(), permissionName, &permissions)
+	resp, err = client.Security.CreateOrReplacePermissionTargets(context.Background(), permissionName, &permissions)
 	if err != nil {
 		s.logger.Error().Msgf("Error creating or replacing Permission : %v", err)
 	} else {
