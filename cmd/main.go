@@ -52,7 +52,7 @@ func WatchProjects(operatorConfig *types.ArtifactoryOperatorConfig) cache.Store 
 		},
 	})
 
-	logger.Info().Msgf("[Operator configuration] Version:0.1 ClusterLocation:%v,"+
+	logger.Info().Msgf("[Operator configuration] ClusterLocation:%v,"+
 		"PasswordBackendNamespace:%v,"+
 		"ArtifactoryServerUrl:%v,"+
 		"ArtifactoryServerUser:%v,"+
