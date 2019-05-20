@@ -45,6 +45,19 @@ make build
 ```
 The output binary will be called `build/artifactory-operator`.
 
+## Contributing
+
+Each new commit should be versioned (see version.txt).
+
+version.txt should contain 3 digits (ex: 1.0.1).
+
+The **first digit** must be change for each **major** version with breaking change.
+
+The **second digit** is for **minor** version with no breaking change. 
+
+The **third digit** is for **patch** with no breaking change.
+
+
 ## Testing locally
 After building, edit `tests/operator-env.inc.sh` and set valid values for your environment (see below for configuration settings). The operator will use the current context of your `.kube/config` file to connect to the K8S cluster.
 
