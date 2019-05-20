@@ -166,7 +166,7 @@ func (s *ArtifactoryService) CreateArtifactoryUsers(fields *types.ArtifactoryInf
 	vaultSecret, err := VaultReadSecret(s.PasswordStoreService.clientVault, pathVault)
 
 	if vaultSecret == nil {
-		s.logger.Info().Msgf("Couldn't find existing password password for user %v: %v", userNameRW)
+		s.logger.Info().Msgf("Couldn't find existing password  for user %v", userNameRW)
 		passwordRW, err = s.PasswordStoreService.GetUserPassword(userNameRW)
 		secretData := map[string]interface{}{
 			userNameRW: passwordRW,
