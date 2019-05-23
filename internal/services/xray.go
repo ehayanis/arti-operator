@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"fmt"
 	"github.com/ca-gip/artifactory-operator/internal/types"
 	"github.com/ca-gip/artifactory-operator/internal/utils"
 	"github.com/rs/zerolog"
@@ -54,9 +53,6 @@ func (s *XrayService) RenewXrayToken() {
 
 func (s *XrayService) CreatePolicy(client *xray.Client, policy *xray.Policy) (*http.Response, error) {
 	resp, err := client.Policies.CreatePolicies(context.Background(), policy)
-	fmt.Println("TOTOTOTOTO")
-	fmt.Println(err)
-	fmt.Println("TOTOTOTOTO")
 
 	if resp.StatusCode == http.StatusUnauthorized {
 		s.RenewXrayToken()
