@@ -1,5 +1,5 @@
-hash: a86422e0b643e09f499fb6168e7751a52d8d636f010d7553c31bd4f7d4b3a558
-updated: 2019-05-09T16:19:54.78939242+02:00
+hash: daa827a1f2e0a013d51111747c398c5288b353c20480503171b4ce998591d226
+updated: 2019-05-23T17:28:01.166549964+02:00
 imports:
 - name: github.com/atlassian/go-artifactory
   version: 789987c730f8a77631aa74f146912a1d29a5165c
@@ -78,7 +78,7 @@ imports:
   - json/scanner
   - json/token
 - name: github.com/hashicorp/vault
-  version: ee1da35e813839dc8ab39b0643b3dc1ff5f18222
+  version: 0082501623c0b704b87b1fbc84c2d725994bac54
   subpackages:
   - api
   - helper/compressutil
@@ -123,10 +123,12 @@ imports:
   subpackages:
   - assert
 - name: gitlab.com/aurelien.gabet/go-xray-cli
-  version: 1cfd4567e173cf397a019992c6df0b1998b68178
+  version: 153889793c1ee769cdb36116c22dad8867bd5e23
   repo: https://gitlab.com/aurelien.gabet/go-xray-cli.git
   subpackages:
   - pkg/xray
+- name: goji.io
+  version: 490b001d03d16a116d7c44d95d216c69a1aae798
 - name: golang.org/x/crypto
   version: de0752318171da717af4ce24d0a2e8626afaeb11
   subpackages:

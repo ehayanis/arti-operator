@@ -3,10 +3,14 @@ package main
 import (
 	"fmt"
 	"github.com/ca-gip/artifactory-operator/internal/types"
+	"goji.io"
+	"goji.io/pat"
+	"net/http"
 	"os"
 	"time"
 
 	"github.com/ca-gip/artifactory-operator/internal/config"
+	"github.com/ca-gip/artifactory-operator/pkg/route"
 	"github.com/ca-gip/artifactory-operator/internal/services"
 
 	"github.com/ca-gip/artifactory-operator/internal/utils"
@@ -17,6 +21,16 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
+func debugHandler(next http.Handler) http.Handler {
+	logger := utils.Log.With().Str("service", "watcher").Logger()
+
+	return http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			logger.Info().Msgf("%s %s", r.Method, r.URL)
+			next.ServeHTTP(w, r)
+		})
+}
+
 func main() {
 
 	operatorConfig, err := config.LoadConfig()
@@ -25,6 +39,12 @@ func main() {
 		fmt.Println("Couldn't load operator configuration:", err)
 		os.Exit(1)
 	}
+
+	mux := goji.NewMux()
+	mux.Use(debugHandler)
+	mux.HandleFunc(pat.Get("/healthz"), route.Healthz)
+
+	go http.ListenAndServe(":8080", mux)
 
 	WatchProjects(operatorConfig)
 }
