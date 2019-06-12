@@ -1,5 +1,5 @@
-hash: 8b9b31fbe8dd2ea7a0ee040e13a86ef7162d954223bd7d277730f17d9e068fc5
-updated: 2019-05-27T18:59:16.224945201+02:00
+hash: 623e91bf4e969998068c6b34added27a4aaa8f1182043a3e3aee6695e7cd93a4
+updated: 2019-05-28T15:40:36.447456147+02:00
 imports:
 - name: github.com/atlassian/go-artifactory
   version: 789987c730f8a77631aa74f146912a1d29a5165c
@@ -123,7 +123,7 @@ imports:
   subpackages:
   - assert
 - name: gitlab.com/aurelien.gabet/go-xray-cli
-  version: e53e950450f8378fd28d90e29420d6ba24427599
+  version: 53a9c06021e5a01601b1bbffb3ec24951c1ad16d
   repo: https://gitlab.com/aurelien.gabet/go-xray-cli.git
   subpackages:
   - internal/utils

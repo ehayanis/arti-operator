@@ -119,20 +119,13 @@ func (s *XrayService) createXrayPolicy(repos []string) {
 		policy := s.policyFields(repoName)
 		resp, err := s.CreatePolicy(s.xrayClient, policy)
 
-		s.logger.Info().Msgf("TTOOTOTOTOTOTO")
-		s.logger.Info().Msgf("%d %s",resp.StatusCode,resp.Request)
-
 		if resp != nil {
 			if resp.StatusCode == http.StatusCreated {
-				s.logger.Info().Msgf("CREAAAAAATTTEDD")
-
 				s.logger.Info().Msgf("XRAY Policy repo %v was created correctly", repoName)
 				continue
 			}
 		} else if err != nil {
 			if err.Error() == `{"error":"Policy already exists"}` {
-				s.logger.Info().Msgf("UPPPPPDDDATEED")
-
 				s.logger.Info().Msgf("XRAY Policy for repo %v already exists, try to update it", repoName)
 				_, err := s.UpdatePolicy(s.xrayClient, policy, repoName)
 				if err != nil {
