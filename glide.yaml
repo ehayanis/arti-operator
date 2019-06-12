@@ -29,5 +29,5 @@ import:
 - package: goji.io
   version: ^2.0.0
 - package: gitlab.com/aurelien.gabet/go-xray-cli
-  version: 153889793c1ee769cdb36116c22dad8867bd5e23
+  version: 53a9c06021e5a01601b1bbffb3ec24951c1ad16d
   repo: https://gitlab.com/aurelien.gabet/go-xray-cli.git

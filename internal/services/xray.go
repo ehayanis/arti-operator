@@ -5,9 +5,9 @@ import (
 	"github.com/ca-gip/artifactory-operator/internal/types"
 	"github.com/ca-gip/artifactory-operator/internal/utils"
 	"github.com/rs/zerolog"
+	xrayTypes "gitlab.com/aurelien.gabet/go-xray-cli/pkg/types"
 	"gitlab.com/aurelien.gabet/go-xray-cli/pkg/xray"
 	"net/http"
-	"os"
 	"regexp"
 )
 
@@ -15,14 +15,14 @@ type XrayService struct {
 	logger       zerolog.Logger
 	xrayClient   *xray.Client
 	xrayBinMgrID string
-	Credentials  *xray.GetToken
+	Credentials  *xrayTypes.GetToken
 }
 
 func NewXrayService(operatorConfig *types.ArtifactoryOperatorConfig) (*XrayService, error) {
 
 	logger := utils.Log.With().Str("service", "xray").Logger()
 
-	credentials := xray.GetToken{
+	credentials := xrayTypes.GetToken{
 		Name: operatorConfig.XrayServerUser,
 		Password: operatorConfig.XrayServerPassword,
 	}
@@ -42,26 +42,9 @@ func NewXrayService(operatorConfig *types.ArtifactoryOperatorConfig) (*XrayServi
 	return result, err
 }
 
-func (s *XrayService) RenewXrayToken() {
-	client, err := xray.NewClientWithToken(os.Getenv("ARTI_OP_XRAY_SERVER_URL"), s.Credentials)
-	if err != nil {
-		s.logger.Error().Msgf("Error when generating Xray Token: %v", err)
-	}
-	s.logger.Info().Msgf("Xray Token has been renewed")
-	s.xrayClient = client
-}
-
 func (s *XrayService) CreatePolicy(client *xray.Client, policy *xray.Policy) (*http.Response, error) {
 	resp, err := client.Policies.CreatePolicies(context.Background(), policy)
-
-	if resp.StatusCode == http.StatusUnauthorized {
-		s.RenewXrayToken()
-		resp, err := client.Policies.CreatePolicies(context.Background(), policy)
-		if err != nil {
-			return nil, err
-		}
-		return resp, err
-	} else 	if err != nil {
+	if err != nil {
 		return nil, err
 	}
 	return resp, err
@@ -70,30 +53,17 @@ func (s *XrayService) CreatePolicy(client *xray.Client, policy *xray.Policy) (*h
 func (s *XrayService) UpdatePolicy(client *xray.Client, policy *xray.Policy, name string) (*http.Response, error) {
 
 	resp, err := client.Policies.UpdatePolicies(context.Background(), policy, name)
-	if resp.StatusCode == http.StatusUnauthorized {
-		s.RenewXrayToken()
-		resp, err := client.Policies.UpdatePolicies(context.Background(), policy, name)
-		if err != nil {
-			return nil, err
-		}
-		return resp, err
-	} else 	if err != nil {
+	if err != nil {
 		return nil, err
 	}
 	return resp, err
+
 }
 
 func (s *XrayService) CreateWatch(client *xray.Client, watch *xray.Watch) (*http.Response, error) {
 
 	resp, err := client.Watches.CreateWatch(context.Background(), watch)
-	if resp.StatusCode == http.StatusUnauthorized {
-		s.RenewXrayToken()
-		resp, err := client.Watches.CreateWatch(context.Background(), watch)
-		if err != nil {
-			return nil, err
-		}
-		return resp, err
-	} else 	if err != nil {
+	if err != nil {
 		return nil, err
 	}
 	return resp, err
@@ -102,14 +72,7 @@ func (s *XrayService) CreateWatch(client *xray.Client, watch *xray.Watch) (*http
 func (s *XrayService) UpdateWatch(client *xray.Client, watch *xray.Watch, name string) (*http.Response, error) {
 
 	resp, err := client.Watches.UpdateWatch(context.Background(), watch, name)
-	if resp.StatusCode == http.StatusUnauthorized {
-		s.RenewXrayToken()
-		resp, err := client.Watches.UpdateWatch(context.Background(), watch, name)
-		if err != nil {
-			return nil, err
-		}
-		return resp, err
-	} else 	if err != nil {
+	if err != nil {
 		return nil, err
 	}
 	return resp, err
