@@ -1,0 +1,119 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: artifactory-operator-user
+  namespace: kube-system
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: artifactory-operator-role
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: [ "*" ]
+  - apiGroups: ["ca-gip.github.com"]
+    resources: [ "projects" ]
+    verbs: [ "get", "list", "watch" ]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: artifactory-operator-user
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: artifactory-operator-role
+subjects:
+  - kind: ServiceAccount
+    name: artifactory-operator-user
+    namespace: kube-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: artifactory-operator-deployment
+  namespace: kube-system
+  labels:
+    app: artifactory-operator
+    version: {{ artifactory.operator.version }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: artifactory-operator
+  template:
+    metadata:
+      labels:
+        app: artifactory-operator
+        version: {{ artifactory.operator.version }}
+    spec:
+      serviceAccountName: artifactory-operator-user
+      containers:
+        - name: artifactory-operator
+          image: "{{ artifactory.operator.image }}:{{  artifactory.operator.version }}"
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: artifactory-operator-config
+          env:
+            - name: ARTI_OP_ARTIFACTORY_SERVER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: artifactory-operator-secret
+                  key: artifactory_password
+            - name: ARTI_OP_VAULT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: artifactory-operator-vault-secret
+                  key: vault_password
+            - name: ARTI_OP_XRAY_SERVER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: artifactory-operator-xray-secret
+                  key: xray_password
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: artifactory-operator-config
+  labels:
+    app: artifactory-operator
+    version: {{ artifactory.operator.version }}
+data:
+  # *** Required params ***
+
+
+  # Location of the cluster : 'intranet' or 'internet'.
+  ARTI_OP_CLUSTER_LOCATION: "{{ artifactory.cluster_location }}"
+
+  # The default tenant for projects of the cluster. Used when no tenant is provided in the
+  # Kubi Project object.
+
+  # The URL for the Artifactory server where registries & users will be created.
+  # Put a full URL to the Artifactory instance, including the scheme. Ex: https://an.artifactory.instance/
+  ARTI_OP_ARTIFACTORY_SERVER_URL: "{{ artifactory.operator.url }}"
+
+  # An Aritfactory admin user that can create repositories and users.
+  # The ARTI_OP_ARTIFACTORY_SERVER_PASSWORD variable is also required,
+  # but you should set it from a Secret (see the rest of the sample deployment).
+  ARTI_OP_ARTIFACTORY_SERVER_USER: "{{ artifactory.artifactory_admin }}"
+
+  # *** Optional params ***
+
+  # Namespace where passwords for generated Artifactory users will be stored (in K8S Secrets).
+  # Default value : 'kube-system'.
+  # ARTI_OP_PASSWORDSTORE_BACKEND_NAMESPACE:
+  ARTI_OP_VAULT_SERVER_URL: "{{ vault.url }}"
+
+  # Prefix added to the name of Artifactory user Secrets.
+  # Default value : 'artifactory-user'.
+  # ARTI_OP_PASSWORDSTORE_SECRET_NAME_PREFIX: artifactory-user
+
+  # Variable used by the XRAY server
+  ARTI_OP_XRAY_BINMGRID: "{{ xray.binmgrid }}"
+
+  # XRAY Server is needed to add Policy and watch to scan images
+  ARTI_OP_XRAY_SERVER_URL: "{{ xray.url }}"
+  ARTI_OP_XRAY_SERVER_USER: "{{ xray.xray_admin }}"
