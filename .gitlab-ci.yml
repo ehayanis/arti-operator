@@ -28,4 +28,4 @@ Deploy Mutu Prod:
     - |
       INVENTORY=$(curl -kL -u admin:password  -H "Content-Type: application/json"  https://awx.os.prodinfo.gca/api/v2/inventories?name=Ansible%20-%20Kube%20-%20Mutu | jq '.results | .[0].id')
       JOB_TEMPLATE=$(curl -kL -u admin:password  -H "Content-Type: application/json" https://awx.os.prodinfo.gca/api/v2/job_templates?name="Kube-Deployer-Arti" | jq '.results | .[0].id')
-      curl -kv -u ${AWX_LOGIN}:${AWX_PASSWORD} -X POST -H "Content-Type: application/json" httvimps://awx.os.prodinfo.gca/api/v2/job_templates/$JOB_TEMPLATE/launch/ -d "{\"inventory\":$INVENTORY,  \"extra_vars\":\"artifactory.operator.version: $(cat version.txt)-${CI_COMMIT_SHA:0:8}\"}"
+      curl -kv -u ${AWX_LOGIN}:${AWX_PASSWORD} -X POST -H "Content-Type: application/json" https://awx.os.prodinfo.gca/api/v2/job_templates/$JOB_TEMPLATE/launch/ -d "{\"inventory\":$INVENTORY,  \"extra_vars\":\"artifactory.operator.version: $(cat version.txt)-${CI_COMMIT_SHA:0:8}\"}"
