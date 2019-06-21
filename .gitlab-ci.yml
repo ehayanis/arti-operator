@@ -15,10 +15,13 @@ Mutu Prod:
       for i in 1..5
       do 
         RESULT=$(false)
+        echo "toto"
         if [ "$RESULT" = true ]
         then
+         echo "ça va breaker"
          break
         fi
+        echo "ça va sleeper"
         sleep 30
       done
       
