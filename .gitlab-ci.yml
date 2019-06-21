@@ -1,5 +1,4 @@
 stages:
-  - Build
   - Deploy
 
 Build:
@@ -21,7 +20,6 @@ Build:
 Mutu Prod:
   image: agabet/alpine-curl:0.2
   stage: Deploy
-  when: on_success
   variables:
     HTTP_PROXY: http://$PROXY_RUNNER
     HTTPS_PROXY: http://$PROXY_RUNNER
@@ -30,7 +28,16 @@ Mutu Prod:
       INVENTORY=$(curl -kL -u ${AWX_LOGIN}:${AWX_PASSWORD}  -H "Content-Type: application/json"  https://awx.os.prodinfo.gca/api/v2/inventories?name=Ansible%20-%20Kube%20-%20Mutu | jq '.results | .[0].id')
       JOB_TEMPLATE=$(curl -kL -u ${AWX_LOGIN}:${AWX_PASSWORD}  -H "Content-Type: application/json" https://awx.os.prodinfo.gca/api/v2/job_templates?name="Kube-Deployer-Arti" | jq '.results | .[0].id')
       JOB_RUNNING_ID=$(curl -kv -u ${AWX_LOGIN}:${AWX_PASSWORD} -X POST -H "Content-Type: application/json" https://awx.os.prodinfo.gca/api/v2/job_templates/$JOB_TEMPLATE/launch/ -d "{\"inventory\":$INVENTORY}")
-
+      for i in 1..5
+      do 
+        RESULT=$(curl -kL -u ${AWX_LOGIN}:${AWX_PASSWORD} -H "Content-Type: application/json"  https://awx.os.prodinfo.gca/api/v2/jobs/$JOB_RUNNING_ID | jq .event_processing_finished)
+        if [ "$RESULT" = true ]
+        then
+         break
+        fi
+        sleep 30
+      done
+      
 CAA Hors Prod:
   image: agabet/alpine-curl:0.2
   stage: Deploy
