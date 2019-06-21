@@ -14,7 +14,7 @@ Mutu Prod:
       JOB_RUNNING_ID=$(curl -kv -u ${AWX_LOGIN}:${AWX_PASSWORD} -X POST -H "Content-Type: application/json" https://awx.os.prodinfo.gca/api/v2/job_templates/$JOB_TEMPLATE/launch/ -d "{\"inventory\":$INVENTORY}")
       for i in 1..5
       do 
-        RESULT=$(true)
+        RESULT=false
         echo "toto"
         if [ "$RESULT" = true ]
         then
