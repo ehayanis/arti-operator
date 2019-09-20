@@ -6,6 +6,9 @@ import (
 	"github.com/ca-gip/artifactory-operator/internal/utils"
 	kubiv1 "github.com/ca-gip/kubi/pkg/apis/ca-gip/v1"
 	"github.com/rs/zerolog"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"net/url"
 	"strings"
 )
@@ -17,17 +20,25 @@ type ProjectService struct {
 	artifactoryHostBase        string
 	clusterLocation            string
 	xrayService                *XrayService
+	kClient                    *kubernetes.Clientset
 }
 
 func NewProjectService(operatorConfig *types.ArtifactoryOperatorConfig,
 	dockerConfigSecretsService *DockerConfigSecretsService,
 	artifactoryService *ArtifactoryService,
-	xrayService *XrayService) (*ProjectService, error) {
+	xrayService *XrayService,
+	kconfig *rest.Config) (*ProjectService, error) {
 	logger := utils.Log.With().Str("service", "project").Logger()
 
 	parsedArtifactoryUri, err := url.Parse(operatorConfig.ArtifactoryServerUrl)
 	if err != nil {
 		logger.Error().Msgf("Couldn't parse Artifactory URI: %v", err)
+		return nil, err
+	}
+
+	kubeClient, err := kubernetes.NewForConfig(kconfig)
+	if err != nil {
+		logger.Error().Msgf("Could not create argocd client: %v", err)
 		return nil, err
 	}
 
@@ -38,6 +49,7 @@ func NewProjectService(operatorConfig *types.ArtifactoryOperatorConfig,
 		clusterLocation:            operatorConfig.ClusterLocation,
 		artifactoryHostBase:        parsedArtifactoryUri.Host,
 		xrayService:                xrayService,
+		kClient:                    kubeClient,
 	}
 
 	return result, nil
@@ -54,6 +66,33 @@ func (s *ProjectService) HandleProject(project *kubiv1.Project) error {
 	}
 
 	err = s.createDockerSecret(project, repos, users)
+	if err != nil {
+		return err
+	}
+
+	err = s.annotateNamespace(project, repos)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *ProjectService) annotateNamespace(project *kubiv1.Project, repos []string) error {
+	currentNamespace, err := s.kClient.CoreV1().Namespaces().Get(project.Name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	if utils.ArtifactoryProjectSpecEnvironment == project.Spec.Environment {
+		repos = append(repos, utils.DockerRemote)
+	}
+
+	annotations := make(map[string]string)
+	annotations[utils.WhitelistKey] = strings.Join(repos[:], ",")
+	currentNamespace.SetAnnotations(annotations)
+
+	_, err = s.kClient.CoreV1().Namespaces().Update(currentNamespace)
 	if err != nil {
 		return err
 	}

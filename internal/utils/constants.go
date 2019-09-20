@@ -1,5 +1,10 @@
 package utils
 
+const (
+	DockerRemote = "docker-remote.registry.saas.cagip.gca"
+	WhitelistKey = "whitelist-repositories"
+)
+
 // Const for Xray tests
 const (
 	XrayTestRepoScratch = "aug-e4-docker-scratch-intranet"

@@ -41,7 +41,7 @@ func InstanciateServices(kconfig *rest.Config, operatorConfig *types.Artifactory
 
 	dockerConfigSecretsService := services.NewDockerConfigSecretsService(kconfig)
 
-	projectService, err := services.NewProjectService(operatorConfig, dockerConfigSecretsService, artifactoryService, xrayService)
+	projectService, err := services.NewProjectService(operatorConfig, dockerConfigSecretsService, artifactoryService, xrayService, kconfig)
 	if err != nil {
 		logger.Error().Msgf("Couldn't create Project service: %v", err)
 	}
