@@ -84,12 +84,18 @@ func (s *ProjectService) annotateNamespace(project *kubiv1.Project, repos []stri
 		return err
 	}
 
+	var fqdnRepos []string
+
+	for _, repo := range repos {
+		fqdnRepos = append(fqdnRepos, repo + utils.FQDN)
+	}
+
 	if utils.ArtifactoryProjectSpecEnvironment == project.Spec.Environment {
-		repos = append(repos, utils.DockerRemote)
+		fqdnRepos = append(fqdnRepos, utils.DockerRemote)
 	}
 
 	annotations := make(map[string]string)
-	annotations[utils.WhitelistKey] = strings.Join(repos[:], ",")
+	annotations[utils.WhitelistKey] = strings.Join(fqdnRepos[:], ",")
 	currentNamespace.SetAnnotations(annotations)
 
 	_, err = s.kClient.CoreV1().Namespaces().Update(currentNamespace)

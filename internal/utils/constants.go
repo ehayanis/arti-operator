@@ -2,6 +2,7 @@ package utils
 
 const (
 	DockerRemote = "docker-remote.registry.saas.cagip.gca"
+	FQDN         = ".registry.saas.cagip.gca"
 	WhitelistKey = "whitelist-repositories"
 )
 
