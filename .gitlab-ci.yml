@@ -31,3 +31,16 @@ Mutu Hors Prod:
   script:
     - |
       ./cd-operators.sh 00-Kube-Operators-Dev
+
+All Clusters:
+  image: agabet/alpine-curl:0.2
+  stage: Deploy
+  variables:
+    HTTP_PROXY: http://$PROXY_RUNNER
+    HTTPS_PROXY: http://$PROXY_RUNNER
+  only:
+    refs:
+      - master
+  script:
+    - |
+      ./cd-operators.sh 10-Kube-Operators-Prod
