@@ -11,4 +11,5 @@ Mutu Hors Prod:
     refs:
       - dev
   script:
-    - ./cd-operators.sh 00-Kube-Operators-Dev
+    - \
+      ./cd-operators.sh 00-Kube-Operators-Dev
