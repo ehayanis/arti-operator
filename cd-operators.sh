@@ -5,6 +5,8 @@ set -o nounset
 
 NUMBER_OF_TRY=30
 
+curl -kL -u ${AWX_LOGIN}:${AWX_PASSWORD} -H "Content-Type: application/json" https://awx.os.prodinfo.gca/api/v2/workflow_job_templates/?name="$1"
+
 JOB_TEMPLATE=$(curl -kL -u ${AWX_LOGIN}:${AWX_PASSWORD} -H "Content-Type: application/json" https://awx.os.prodinfo.gca/api/v2/workflow_job_templates/?name="$1" | jq '.results | .[0].id')
 
 JOB_RUNNING_ID=$(curl -kv -u ${AWX_LOGIN}:${AWX_PASSWORD} -X POST -H "Content-Type: application/json" https://awx.os.prodinfo.gca/api/v2/workflow_job_templates/$JOB_TEMPLATE/launch/ | jq .workflow_job)
