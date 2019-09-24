@@ -1,7 +1,6 @@
 #!/bin/sh
 
 set -e
-set -o pipefail
 set -o nounset
 
 NUMBER_OF_TRY=30
