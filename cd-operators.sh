@@ -3,7 +3,7 @@
 set -e
 set -o nounset
 
-NUMBER_OF_TRY=30
+NUMBER_OF_TRY=40
 
 JOB_TEMPLATE=$(curl -kL -u ${AWX_LOGIN}:${AWX_PASSWORD}  \
   -H "Content-Type: application/json" \
