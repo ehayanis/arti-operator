@@ -16,6 +16,7 @@ type ArtifactoryService struct {
 	PasswordStoreService *PasswordStoreService
 	artifactoryClient    *artifactory.Client
 	artifactoryUrl       string
+	clusterDNSSubdomain  string
 }
 
 func NewArtifactoryService(operatorConfig *types.ArtifactoryOperatorConfig, PasswordStoreService *PasswordStoreService) (*ArtifactoryService, error) {
@@ -37,6 +38,7 @@ func NewArtifactoryService(operatorConfig *types.ArtifactoryOperatorConfig, Pass
 		artifactoryUrl:       operatorConfig.ArtifactoryServerUrl,
 		PasswordStoreService: PasswordStoreService,
 		logger:               logger,
+		clusterDNSSubdomain:  operatorConfig.ClusterDNSSubdomain,
 	}
 
 	return result, nil
@@ -162,7 +164,7 @@ func (s *ArtifactoryService) CreateArtifactoryUsers(fields *types.ArtifactoryInf
 
 	userNameRW, userEmailRW, groupsRW := s.generateUserFields(fields, "RW")
 	passwordRW := ""
-	pathVault := fmt.Sprintf("secret/%s/%s/k8s/%s/artifactory", fields.Tenant, fields.ProjectName, fields.Environment)
+	pathVault := fmt.Sprintf("secrets/%s/%s/k8s/%s-%s/artifactory", fields.Tenant, fields.ProjectName, s.clusterDNSSubdomain, fields.Environment)
 	vaultSecret, err := VaultReadSecret(s.PasswordStoreService.clientVault, pathVault)
 
 	if vaultSecret == nil {

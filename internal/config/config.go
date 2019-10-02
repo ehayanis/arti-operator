@@ -51,6 +51,9 @@ func LoadConfig() (*types.ArtifactoryOperatorConfig, error) {
 	vaultToken, ok := os.LookupEnv("ARTI_OP_VAULT_TOKEN")
 	if ok {
 		result.VaultServerToken = vaultToken
+	} else {
+		err := errors.New("ARTI_OP_VAULT_TOKEN is required.")
+		return nil, err
 	}
 
 	passwordStoreSecretNamePrefix, ok := os.LookupEnv("ARTI_OP_PASSWORDSTORE_SECRET_NAME_PREFIX")
@@ -138,7 +141,7 @@ func LoadConfig() (*types.ArtifactoryOperatorConfig, error) {
 
 	xrayBinMgrID, ok := os.LookupEnv("ARTI_OP_XRAY_BINMGRID")
 	if ok {
-		if strings.TrimSpace(xrayServerPassword) == "" {
+		if strings.TrimSpace(xrayBinMgrID) == "" {
 			err := errors.New("ARTI_OP_XRAY_BINMGRID is required, but empty.")
 			return nil, err
 		}
@@ -146,6 +149,19 @@ func LoadConfig() (*types.ArtifactoryOperatorConfig, error) {
 		result.XrayBinMgrID = xrayBinMgrID
 	} else {
 		err := errors.New("ARTI_OP_XRAY_BINMGRID is required.")
+		return nil, err
+	}
+
+	clusterDNSSubdomain, ok := os.LookupEnv("ARTI_OP_CLUSTER_DNSSUBDOMAIN")
+	if ok {
+		if strings.TrimSpace(clusterDNSSubdomain) == "" {
+			err := errors.New("ARTI_OP_CLUSTER_DNSSUBDOMAIN is required, but empty.")
+			return nil, err
+		}
+
+		result.ClusterDNSSubdomain = clusterDNSSubdomain
+	} else {
+		err := errors.New("ARTI_OP_CLUSTER_DNSSUBDOMAIN is required.")
 		return nil, err
 	}
 
