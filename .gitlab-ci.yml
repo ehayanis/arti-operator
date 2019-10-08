@@ -19,19 +19,19 @@ Build:
     - docker build --build-arg HTTP_PROXY=http://$PROXY_RUNNER --build-arg HTTPS_PROXY=http://$PROXY_RUNNER --network=host -t $IMAGE_BASE_NAME:$(cat version.txt)-dev .
     - docker push $IMAGE_BASE_NAME:$(cat version.txt)-dev
 
-#Mutu Hors Prod:
-#  image: agabet/alpine-curl:0.2
-#  stage: Deploy
-#  when: on_success
-#  variables:
-#    HTTP_PROXY: http://$PROXY_RUNNER
-#    HTTPS_PROXY: http://$PROXY_RUNNER
-#  only:
-#    refs:
-#      - dev
-#  script:
-#    - |
-#      ./cd-operators.sh 00-Kube-Operators-Dev
+Mutu Hors Prod:
+  image: agabet/alpine-curl:0.2
+  stage: Deploy
+  when: on_success
+  variables:
+    HTTP_PROXY: http://$PROXY_RUNNER
+    HTTPS_PROXY: http://$PROXY_RUNNER
+  only:
+    refs:
+      - dev
+  script:
+    - |
+      ./cd-operators.sh 00-Kube-Operators-Dev
 
 Promote Image:
   image: agabet/alpine-curl:0.2

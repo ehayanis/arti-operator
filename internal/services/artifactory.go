@@ -162,14 +162,14 @@ func (s *ArtifactoryService) CreateArtifactoryUsers(fields *types.ArtifactoryInf
 
 	userNameRW, userEmailRW, groupsRW := s.generateUserFields(fields, "RW")
 	passwordRW := ""
-	pathVault := fmt.Sprintf("%s/%s/%s/k8s/%s/artifactory", utils.VaultStore, fields.Tenant, fields.ProjectName, fields.Environment)
+	pathVault := fmt.Sprintf("%s/%s/%s/k8s/%s/artifactory/%s", utils.VaultStore, fields.Tenant, fields.ProjectName, fields.Environment, userNameRW)
 	vaultSecret, err := VaultReadSecret(s.PasswordStoreService.clientVault, pathVault)
 
 	if vaultSecret == nil {
 		s.logger.Info().Msgf("Couldn't find existing password  for user %v", userNameRW)
 		passwordRW, err = s.PasswordStoreService.GetUserPassword(userNameRW)
 		secretData := map[string]interface{}{
-			userNameRW: passwordRW,
+			"password": passwordRW,
 		}
 		_, err = VaultWriteSecret(s.PasswordStoreService.clientVault, secretData, pathVault)
 		if err != nil {
@@ -177,7 +177,7 @@ func (s *ArtifactoryService) CreateArtifactoryUsers(fields *types.ArtifactoryInf
 		}
 		s.logger.Info().Msgf("Password created and stored in Vault server for user %v", userNameRW)
 	} else {
-		passwordRW = fmt.Sprintf("%v", vaultSecret.Data[userNameRW])
+		passwordRW = fmt.Sprintf("%v", vaultSecret.Data["password"])
 		s.logger.Info().Msgf("Password already exist in Vault server for user %v", userNameRW)
 	}
 
