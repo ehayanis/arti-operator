@@ -162,7 +162,7 @@ func (s *ArtifactoryService) CreateArtifactoryUsers(fields *types.ArtifactoryInf
 
 	userNameRW, userEmailRW, groupsRW := s.generateUserFields(fields, "RW")
 	passwordRW := ""
-	pathVault := fmt.Sprintf("secret/%s/%s/k8s/%s/artifactory", fields.Tenant, fields.ProjectName, fields.Environment)
+	pathVault := fmt.Sprintf("%s/%s/%s/k8s/%s/artifactory", utils.VaultStore, fields.Tenant, fields.ProjectName, fields.Environment)
 	vaultSecret, err := VaultReadSecret(s.PasswordStoreService.clientVault, pathVault)
 
 	if vaultSecret == nil {
@@ -203,7 +203,7 @@ func (s *ArtifactoryService) generateUserFields(fields *types.ArtifactoryInforma
 	suffix := ""
 	if mode == "RW" {
 		suffix = utils.ArtifactoryUserRWSuffix
-	} else if mode == "RO"{
+	} else if mode == "RO" {
 		if fields.Environment == "production" {
 			suffix = utils.ArtifactoryUserROSuffixProduction
 		} else {
