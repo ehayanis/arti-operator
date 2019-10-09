@@ -38,7 +38,7 @@ func NewProjectService(operatorConfig *types.ArtifactoryOperatorConfig,
 
 	kubeClient, err := kubernetes.NewForConfig(kconfig)
 	if err != nil {
-		logger.Error().Msgf("Could not create argocd client: %v", err)
+		logger.Error().Msgf("Could not create k8s client: %v", err)
 		return nil, err
 	}
 
@@ -87,7 +87,7 @@ func (s *ProjectService) annotateNamespace(project *kubiv1.Project, repos []stri
 	var fqdnRepos []string
 
 	for _, repo := range repos {
-		fqdnRepos = append(fqdnRepos, repo + utils.FQDN)
+		fqdnRepos = append(fqdnRepos, repo+utils.FQDN)
 	}
 
 	if utils.ArtifactoryProjectSpecEnvironment == project.Spec.Environment {
