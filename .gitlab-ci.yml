@@ -44,7 +44,7 @@ Promote Image:
       - master
   script:
     - |
-      curl -u "silca-tools-docker-scratch-intranet:$AD_PASSWD" -X POST "https://silca-tools-docker-scratch-intranet.registry.saas.cagip.gca/v2/promote" -H "Content-Type: application/json" -kv -d "{ \"targetRepo\":\"silca-tools-docker-stable-intranet\", \"dockerRepository\":\"artifactory-operator\", \"tag\":\"$(cat version.txt)-dev\", \"targetTag\":\"$(cat version.txt)-prod\" ,\"copy\":\"true\" }"
+      curl -u "silca-tools-docker-scratch-intranet:$AD_PASSWD" -X POST "https://silca-tools-docker-scratch-intranet.registry.saas.cagip.gca/v2/promote" -H "Content-Type: application/json" -kv -d "{ \"targetRepo\":\"silca-tools-docker-stable-intranet\", \"dockerRepository\":\"artifactory-operator\", \"tag\":\"$(cat version.txt)-dev\", \"targetTag\":\"$(cat version.txt)-master\" ,\"copy\":\"true\" }"
 
 All Clusters:
   image: agabet/alpine-curl:0.2
