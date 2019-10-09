@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"github.com/ca-gip/artifactory-operator/internal/types"
 	"github.com/ca-gip/artifactory-operator/internal/utils"
 	"reflect"
@@ -16,6 +17,7 @@ func Test_generateArtifactoryFields_EmptyProject(t *testing.T) {
 	config := types.ArtifactoryOperatorConfig{
 		ClusterLocation: utils.ArtifactoryLocationIntranet,
 	}
+	fmt.Println("TOTOTOTOTO")
 
 	service, _ := NewProjectService(&config, nil, nil, nil, nil)
 

@@ -46,15 +46,15 @@ Promote Image:
     - |
       curl -u "silca-tools-docker-scratch-intranet:$AD_PASSWD" -X POST "https://silca-tools-docker-scratch-intranet.registry.saas.cagip.gca/v2/promote" -H "Content-Type: application/json" -kv -d "{ \"targetRepo\":\"silca-tools-docker-stable-intranet\", \"dockerRepository\":\"artifactory-operator\", \"tag\":\"$(cat version.txt)-dev\", \"targetTag\":\"$(cat version.txt)-prod\" ,\"copy\":\"true\" }"
 
-#All Clusters:
-#  image: agabet/alpine-curl:0.2
-#  stage: Deploy
-#  variables:
-#    HTTP_PROXY: http://$PROXY_RUNNER
-#    HTTPS_PROXY: http://$PROXY_RUNNER
-#  only:
-#    refs:
-#      - master
-#  script:
-#    - |
-#      ./cd-operators.sh 10-Kube-Operators-Prod
+All Clusters:
+  image: agabet/alpine-curl:0.2
+  stage: Deploy
+  variables:
+    HTTP_PROXY: http://$PROXY_RUNNER
+    HTTPS_PROXY: http://$PROXY_RUNNER
+  only:
+    refs:
+      - master
+  script:
+    - |
+      ./cd-operators.sh 10-Kube-Operators-Prod
