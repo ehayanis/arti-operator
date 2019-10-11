@@ -117,10 +117,11 @@ func (s *ArtifactoryService) ArtifactoryRepositoryCreate(fields *types.Artifacto
 
 func (s *ArtifactoryService) CreateArtifactoryGroup(fields *types.ArtifactoryInformation) {
 
-	groupName := fmt.Sprintf("dl_artifactory_%s_%s", fields.Tenant, fields.ProjectName)
+	groupName := fields.SourceEntity
 	group := artifactory.Group{
 		Name:        artifactory.String(groupName),
-		Description: artifactory.String(fields.Description),
+		Description: artifactory.String("created by new version"), //artifactory.String(fields.Description),
+	  Realm:       artifactory.String("paas_container"),
 	}
 
 	resp, err := s.artifactoryClient.Security.CreateOrReplaceGroup(context.Background(), groupName, &group)
@@ -278,7 +279,7 @@ func (s *ArtifactoryService) CreateArtifactoryPermissions(fields *types.Artifact
 	permissionNameRW := permissionName("rw", fields)
 	userPermissionsRW := []string{"d", "w", "n", "r"}
 	userRW := &map[string][]string{users.UserNameRW: userPermissionsRW}
-	groupNameRW := fmt.Sprintf("dl_artifactory_%s_%s", fields.Tenant, fields.ProjectName)
+	groupNameRW := fields.SourceEntity
 	groupPermissionsRW := []string{"d", "w", "n", "r"}
 	groupRW := &map[string][]string{groupNameRW: groupPermissionsRW}
 
