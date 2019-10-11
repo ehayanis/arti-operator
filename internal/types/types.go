@@ -7,6 +7,7 @@ type ArtifactoryInformation struct {
 	Location    string   //param confmap
 	Description string
 	Environment string
+	SourceEntity string
 }
 
 type ArtifactoryRepoUsers struct {
