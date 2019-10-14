@@ -184,6 +184,7 @@ func (s *ArtifactoryService) CreateArtifactoryUsers(fields *types.ArtifactoryInf
 	userNameRW, userEmailRW, groupsRW := s.generateUserFields(fields, "RW")
 	pathVault := fmt.Sprintf("%s/%s/%s/k8s/%s-%s/artifactory", utils.VaultStore, fields.Tenant, fields.ProjectName, s.clusterDNSSubdomain, fields.Environment)
 	passwordRW, err := s.getVaultSecret(pathVault, userNameRW)
+
 	if err != nil {
 		s.logger.Error().Msgf("Couldn't generate password for user %v: %v", userNameRW, err)
 		return nil, err
