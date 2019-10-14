@@ -46,4 +46,5 @@ type ArtifactoryOperatorConfig struct {
 	XrayServerUser                string
 	XrayServerPassword            string
 	XrayBinMgrID                  string
+	ClusterDNSSubdomain           string
 }
