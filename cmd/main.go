@@ -123,4 +123,3 @@ func projectCreated(obj interface{}, projectService *services.ProjectService) {
 		utils.Log.Info().Msgf("Operator: the project %v has been created, generating associated resources: artifactory repositories, users, groups and permissions.", project.Name)
 	}
 }
-

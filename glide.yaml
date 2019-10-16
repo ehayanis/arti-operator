@@ -5,7 +5,7 @@ import:
   subpackages:
   - pkg
 - package: github.com/hashicorp/vault
-  version: ^1.0.3
+  version: ^1.2.3
   subpackages:
   - api
 - package: k8s.io/code-generator
