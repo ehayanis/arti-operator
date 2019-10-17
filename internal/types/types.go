@@ -8,6 +8,7 @@ type ArtifactoryInformation struct {
 	Description string
 	Environment string
 	SourceEntity string
+	ClusterDNSSubdomain string
 }
 
 type ArtifactoryRepoUsers struct {
@@ -47,4 +48,5 @@ type ArtifactoryOperatorConfig struct {
 	XrayServerUser                string
 	XrayServerPassword            string
 	XrayBinMgrID                  string
+	ClusterDNSSubdomain           string
 }
