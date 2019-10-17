@@ -16,6 +16,7 @@ type ArtifactoryService struct {
 	PasswordStoreService *PasswordStoreService
 	artifactoryClient    *artifactory.Client
 	artifactoryUrl       string
+	clusterDNSSubdomain  string
 }
 
 func NewArtifactoryService(operatorConfig *types.ArtifactoryOperatorConfig, PasswordStoreService *PasswordStoreService) (*ArtifactoryService, error) {
@@ -37,15 +38,17 @@ func NewArtifactoryService(operatorConfig *types.ArtifactoryOperatorConfig, Pass
 		artifactoryUrl:       operatorConfig.ArtifactoryServerUrl,
 		PasswordStoreService: PasswordStoreService,
 		logger:               logger,
+		clusterDNSSubdomain:  operatorConfig.ClusterDNSSubdomain,
 	}
 
 	return result, nil
 }
 
-func permissionName(permission string, fields *types.ArtifactoryInformation) string {
-	return fmt.Sprintf("%s-%s-docker-allrepos-%s-%s",
+func permissionName(permission string, fields *types.ArtifactoryInformation, stage string) string {
+	return fmt.Sprintf("%s-%s-docker-%s-%s-%s",
 		fields.Tenant,
 		fields.ProjectName,
+		stage,
 		fields.Location,
 		permission)
 }
@@ -121,7 +124,8 @@ func (s *ArtifactoryService) CreateArtifactoryGroup(fields *types.ArtifactoryInf
 	group := artifactory.Group{
 		Name:        artifactory.String(groupName),
 		Description: artifactory.String("created by new version"), //artifactory.String(fields.Description),
-	  Realm:       artifactory.String("paas_container"),
+		Realm:       artifactory.String("ldap"),
+		RealmAttributes: artifactory.String(fmt.Sprintf("ldapGroupName=%s", groupName)),
 	}
 
 	resp, err := s.artifactoryClient.Security.CreateOrReplaceGroup(context.Background(), groupName, &group)
@@ -150,8 +154,28 @@ func (s *ArtifactoryService) createArtifactoryUsers(client *artifactory.Client, 
 	}
 }
 
+func (s *ArtifactoryService) getVaultSecret(pathVault string, userNameRW string) (string, error) {
+
+	passwordRW, err := s.PasswordStoreService.GetUserPassword(userNameRW)
+	secretData := map[string]interface{}{
+		"data": map[string]interface{}{
+			userNameRW: passwordRW,
+		},
+	}
+	_, err = VaultWriteSecret(s.PasswordStoreService.clientVault, secretData, pathVault)
+	if err != nil {
+		s.logger.Error().Msgf("Couldn't write secret in to vault for user %v: %v", userNameRW, err)
+		return "", nil
+	}
+
+	s.logger.Info().Msgf("Password created and stored in Vault server for user %v", userNameRW)
+	return passwordRW, nil
+}
+
+
 func (s *ArtifactoryService) CreateArtifactoryUsers(fields *types.ArtifactoryInformation) (*types.ArtifactoryRepoUsers, error) {
 
+	//Generate Read Only users (used for k8s only)
 	userNameRO, userEmailRO, groupsRO := s.generateUserFields(fields, "RO")
 	passwordRO, err := s.PasswordStoreService.GetUserPassword(userNameRO)
 	if err != nil {
@@ -161,32 +185,17 @@ func (s *ArtifactoryService) CreateArtifactoryUsers(fields *types.ArtifactoryInf
 	s.logger.Info().Msgf("Creating RO user %v.", userNameRO)
 	s.createArtifactoryUsers(s.artifactoryClient, userNameRO, userEmailRO, passwordRO, groupsRO)
 
+	//Generate Read Write users (used as a service account for CI)
 	userNameRW, userEmailRW, groupsRW := s.generateUserFields(fields, "RW")
-	passwordRW := ""
-	pathVault := fmt.Sprintf("%s/%s/%s/k8s/%s/artifactory/%s", utils.VaultStore, fields.Tenant, fields.ProjectName, fields.Environment, userNameRW)
-	vaultSecret, err := VaultReadSecret(s.PasswordStoreService.clientVault, pathVault)
+	pathVault := fmt.Sprintf("%s/%s/%s/k8s/%s-%s/artifactory", utils.VaultStore, fields.Tenant, fields.ProjectName, s.clusterDNSSubdomain, fields.Environment)
+	passwordRW, err := s.getVaultSecret(pathVault, userNameRW)
 
-	if vaultSecret == nil {
-		s.logger.Info().Msgf("Couldn't find existing password  for user %v", userNameRW)
-		passwordRW, err = s.PasswordStoreService.GetUserPassword(userNameRW)
-		secretData := map[string]interface{}{
-			"password": passwordRW,
-		}
-		_, err = VaultWriteSecret(s.PasswordStoreService.clientVault, secretData, pathVault)
-		if err != nil {
-			s.logger.Error().Msgf("Couldn't write secret in to vault for user %v: %v", userNameRW, err)
-		}
-		s.logger.Info().Msgf("Password created and stored in Vault server for user %v", userNameRW)
-	} else {
-		passwordRW = fmt.Sprintf("%v", vaultSecret.Data["password"])
-		s.logger.Info().Msgf("Password already exist in Vault server for user %v", userNameRW)
-	}
-
-	//	passwordRW, err := s.PasswordStoreService.GetUserPassword(userNameRW)
 	if err != nil {
 		s.logger.Error().Msgf("Couldn't generate password for user %v: %v", userNameRW, err)
 		return nil, err
 	}
+
+	//Create or Update user each time the operator pass
 	s.createArtifactoryUsers(s.artifactoryClient, userNameRW, userEmailRW, passwordRW, groupsRW)
 
 	result := &types.ArtifactoryRepoUsers{
@@ -198,6 +207,7 @@ func (s *ArtifactoryService) CreateArtifactoryUsers(fields *types.ArtifactoryInf
 
 	return result, nil
 }
+
 
 func (s *ArtifactoryService) generateUserFields(fields *types.ArtifactoryInformation, mode string) (string, string, *[]string) {
 
@@ -255,39 +265,39 @@ func (s *ArtifactoryService) createArtifactoryPermissions(
 }
 
 func (s *ArtifactoryService) CreateArtifactoryPermissions(fields *types.ArtifactoryInformation, users *types.ArtifactoryRepoUsers) {
-	repositories := []string{}
-	scratchRepository := []string{}
 
-	for _, stage := range fields.Stages {
-		if stage == utils.ArtifactoryStageScratch || stage == utils.ArtifactoryStageStaging {
-			scratchRepository = append(scratchRepository, artifactoryRepositoryKey(fields, stage))
-		}
-		repositories = append(repositories, artifactoryRepositoryKey(fields, stage))
-	}
-
-	permissionNameRO := permissionName("ro", fields)
-	userPermissions := []string{"r"}
-	userRO := &map[string][]string{users.UserNameRO: userPermissions}
-	s.createArtifactoryPermissions(
-		s.artifactoryClient,
-		permissionNameRO,
-		repositories,
-		userRO,
-		nil,
-	)
-
-	permissionNameRW := permissionName("rw", fields)
+	s.logger.Info().Msgf("START CreateArtifactoryPermissions")
+	userPermissionsRO := []string{"r"}
 	userPermissionsRW := []string{"d", "w", "n", "r"}
-	userRW := &map[string][]string{users.UserNameRW: userPermissionsRW}
-	groupNameRW := fields.SourceEntity
 	groupPermissionsRW := []string{"d", "w", "n", "r"}
+	userRO := &map[string][]string{users.UserNameRO: userPermissionsRO}
+	userRW := &map[string][]string{users.UserNameRW: userPermissionsRW}
+	
+	groupNameRW := fields.SourceEntity
 	groupRW := &map[string][]string{groupNameRW: groupPermissionsRW}
 
-	s.createArtifactoryPermissions(
-		s.artifactoryClient,
-		permissionNameRW,
-		scratchRepository,
-		userRW,
-		groupRW,
-	)
+	for _, stage := range fields.Stages {
+		permissionNameRO := permissionName("ro", fields, stage)
+		repos := artifactoryRepositoryKey(fields, stage)
+		s.logger.Info().Msgf("createArtifactoryPermissions(%s, %s, %s, %s)", permissionNameRO, repos, userRO, groupRW)
+		s.createArtifactoryPermissions(
+			s.artifactoryClient,
+			permissionNameRO,
+			[]string{repos},
+			userRO,
+			groupRW,
+		)
+		if stage == utils.ArtifactoryStageScratch || stage == utils.ArtifactoryStageStaging {
+			permissionNameRW := permissionName("rw", fields, stage)
+			s.logger.Info().Msgf("createArtifactoryPermissions(%s, %s, %s, %s)", permissionNameRW, repos, userRW, groupRW)
+			s.createArtifactoryPermissions(
+				s.artifactoryClient,
+				permissionNameRW,
+				[]string{repos},
+				userRW,
+				groupRW,
+			)
+		}
+	}
+	s.logger.Info().Msgf("FINISH CreateArtifactoryPermissions")
 }
