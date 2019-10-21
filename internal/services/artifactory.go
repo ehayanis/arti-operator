@@ -243,15 +243,6 @@ func (s *ArtifactoryService) createArtifactoryPermissions(
 
 	repositories := &artifactoryRepositoryNames
 
-	//check if permissions already exists
-	// existingPermission, resp, err := client.Security.GetPermissionTargets(context.Background(), permissionName)
-	// if err != nil {
-	// 	s.logger.Error().Msgf("Error listing existing permissions : %v", err)
-	// } else if existingPermission != nil {
-	// 	*repositories = append(*repositories, *existingPermission.Repositories...)
-	// 	*repositories = utils.Uniq(*repositories)
-	// }
-
 	permissions := artifactory.PermissionTargets{
 		Name:         artifactory.String(permissionName),
 		Repositories: repositories,
@@ -276,10 +267,6 @@ func (s *ArtifactoryService) CreateArtifactoryPermissions(fields *types.Artifact
 
 	permissionsRO := []string{"r"}
 	permissionsRW := []string{"d", "w", "n", "r"}
-	
-	//repositories := []string{}
-	//scratchRepository := []string{}
- 
 	repositories := []string{
 		artifactoryRepositoryKey(fields, "scratch"), 
 		artifactoryRepositoryKey(fields, "staging"), 
@@ -290,15 +277,8 @@ func (s *ArtifactoryService) CreateArtifactoryPermissions(fields *types.Artifact
 		artifactoryRepositoryKey(fields, "staging"), 
 	}
 
-	// for _, stage := range fields.Stages {
-	// 	if stage == utils.ArtifactoryStageScratch || stage == utils.ArtifactoryStageStaging {
-	// 		scratchRepository = append(scratchRepository, 
-	// 	}
-	// 	repositories = append(repositories, artifactoryRepositoryKey(fields, stage))
-	// }
-
 	// 1 permission '<entity>-<project>-docker-allrepos-<cluster_dnssubdomain>-ro' 
-	//              for 1 user '<entity>-<project>_<cluster_dnssubdomain>_k8s_production_reader'
+	//              for 1 user '<entity>-<project>_<cluster_dnssubdomain>_k8s_reader'
 	//              on 3 repositories '<entity>-<project>-docker-[scratch|staging|stable]-<cluster_dnssubdomain>'
 	permissionNameRO := permissionName("ro", fields)
 	userRO := &map[string][]string{users.UserNameRO: permissionsRO}
