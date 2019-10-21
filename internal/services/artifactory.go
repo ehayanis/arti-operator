@@ -44,11 +44,20 @@ func NewArtifactoryService(operatorConfig *types.ArtifactoryOperatorConfig, Pass
 	return result, nil
 }
 
-func permissionName(permission string, fields *types.ArtifactoryInformation, stage string) string {
+func permissionName(permission string, fields *types.ArtifactoryInformation) string {
+	return fmt.Sprintf("%s-%s-docker-allrepos-%s-%s",
+		fields.Tenant,
+		fields.ProjectName,
+		fields.Location,
+		permission)
+
+}
+
+func permissionEnvName(permission string, fields *types.ArtifactoryInformation) string {
 	return fmt.Sprintf("%s-%s-docker-%s-%s-%s",
 		fields.Tenant,
 		fields.ProjectName,
-		stage,
+		fields.Environment,
 		fields.Location,
 		permission)
 }
@@ -215,12 +224,9 @@ func (s *ArtifactoryService) generateUserFields(fields *types.ArtifactoryInforma
 	if mode == "RW" {
 		suffix = utils.ArtifactoryUserRWSuffix
 	} else if mode == "RO" {
-		if fields.Environment == "production" {
-			suffix = utils.ArtifactoryUserROSuffixProduction
-		} else {
-			suffix = utils.ArtifactoryUserROSuffixNonProduction
-		}
+		suffix = utils.ArtifactoryUserROSuffixNonProduction
 	}
+	
 	userName := fmt.Sprintf("%s_%s_%s_%s", fields.Tenant, fields.ProjectName, fields.Location, suffix)
 	userEmail := fmt.Sprintf("%s@notanadress.ca.example.com", userName)
 	groups := &[]string{"readers"}
@@ -238,13 +244,13 @@ func (s *ArtifactoryService) createArtifactoryPermissions(
 	repositories := &artifactoryRepositoryNames
 
 	//check if permissions already exists
-	existingPermission, resp, err := client.Security.GetPermissionTargets(context.Background(), permissionName)
-	if err != nil {
-		s.logger.Error().Msgf("Error listing existing permissions : %v", err)
-	} else if existingPermission != nil {
-		*repositories = append(*repositories, *existingPermission.Repositories...)
-		*repositories = utils.Uniq(*repositories)
-	}
+	// existingPermission, resp, err := client.Security.GetPermissionTargets(context.Background(), permissionName)
+	// if err != nil {
+	// 	s.logger.Error().Msgf("Error listing existing permissions : %v", err)
+	// } else if existingPermission != nil {
+	// 	*repositories = append(*repositories, *existingPermission.Repositories...)
+	// 	*repositories = utils.Uniq(*repositories)
+	// }
 
 	permissions := artifactory.PermissionTargets{
 		Name:         artifactory.String(permissionName),
@@ -255,7 +261,7 @@ func (s *ArtifactoryService) createArtifactoryPermissions(
 		},
 	}
 
-	resp, err = client.Security.CreateOrReplacePermissionTargets(context.Background(), permissionName, &permissions)
+	resp, err := client.Security.CreateOrReplacePermissionTargets(context.Background(), permissionName, &permissions)
 	if err != nil {
 		s.logger.Error().Msgf("Error creating or replacing Permission : %v", err)
 	} else {
@@ -267,37 +273,82 @@ func (s *ArtifactoryService) createArtifactoryPermissions(
 func (s *ArtifactoryService) CreateArtifactoryPermissions(fields *types.ArtifactoryInformation, users *types.ArtifactoryRepoUsers) {
 
 	s.logger.Info().Msgf("START CreateArtifactoryPermissions")
-	userPermissionsRO := []string{"r"}
-	userPermissionsRW := []string{"d", "w", "n", "r"}
-	groupPermissionsRW := []string{"d", "w", "n", "r"}
-	userRO := &map[string][]string{users.UserNameRO: userPermissionsRO}
-	userRW := &map[string][]string{users.UserNameRW: userPermissionsRW}
-	
-	groupNameRW := fields.SourceEntity
-	groupRW := &map[string][]string{groupNameRW: groupPermissionsRW}
 
-	for _, stage := range fields.Stages {
-		permissionNameRO := permissionName("ro", fields, stage)
-		repos := artifactoryRepositoryKey(fields, stage)
-		s.logger.Info().Msgf("createArtifactoryPermissions(%s, %s, %s, %s)", permissionNameRO, repos, userRO, groupRW)
+	permissionsRO := []string{"r"}
+	permissionsRW := []string{"d", "w", "n", "r"}
+	
+	//repositories := []string{}
+	//scratchRepository := []string{}
+ 
+	repositories := []string{
+		artifactoryRepositoryKey(fields, "scratch"), 
+		artifactoryRepositoryKey(fields, "staging"), 
+		artifactoryRepositoryKey(fields, "stable"),
+	}
+	scratchRepository := []string{
+		artifactoryRepositoryKey(fields, "scratch"), 
+		artifactoryRepositoryKey(fields, "staging"), 
+	}
+
+	// for _, stage := range fields.Stages {
+	// 	if stage == utils.ArtifactoryStageScratch || stage == utils.ArtifactoryStageStaging {
+	// 		scratchRepository = append(scratchRepository, 
+	// 	}
+	// 	repositories = append(repositories, artifactoryRepositoryKey(fields, stage))
+	// }
+
+	// 1 permission '<entity>-<project>-docker-allrepos-<cluster_dnssubdomain>-ro' 
+	//              for 1 user '<entity>-<project>_<cluster_dnssubdomain>_k8s_production_reader'
+	//              on 3 repositories '<entity>-<project>-docker-[scratch|staging|stable]-<cluster_dnssubdomain>'
+	permissionNameRO := permissionName("ro", fields)
+	userRO := &map[string][]string{users.UserNameRO: permissionsRO}
+	s.createArtifactoryPermissions(
+		s.artifactoryClient,
+		permissionNameRO,
+		repositories,
+		userRO,
+		nil,
+	)
+	s.logger.Info().Msgf("Username RO: %s", users.UserNameRO)
+	s.logger.Info().Msgf("Repos RO: %s", repositories)
+
+	// 1 permission '<entity>-<project>-docker-allrepos-<cluster_dnssubdomain>-rw'
+	//              for 1 user '<entity>-<project>_<cluster_dnssubdomain>_jenkins_writer'
+	//              on 2 repositories '<entity>-<project>-docker-[scratch|staging]-<cluster_dnssubdomain>'
+	permissionNameRW := permissionName("rw", fields)
+	userRW := &map[string][]string{users.UserNameRW: permissionsRW}
+	s.createArtifactoryPermissions(
+		s.artifactoryClient,
+		permissionNameRW,
+		scratchRepository,
+		userRW,
+		nil,
+	)
+	s.logger.Info().Msgf("Repos RW: %s", scratchRepository)
+
+	groupNameRO := fields.SourceEntity	
+	permissionEnvNameRO := permissionEnvName("ro", fields)
+	groupRO := &map[string][]string{groupNameRO: permissionsRO}
+	s.createArtifactoryPermissions(
+		s.artifactoryClient,
+		permissionEnvNameRO,
+		repositories,
+		nil,
+		groupRO,
+	)
+
+	if fields.Environment != "production" {
+		groupNameRW := fields.SourceEntity
+		permissionEnvNameRW := permissionEnvName("rw", fields)
+		groupRW := &map[string][]string{groupNameRW: permissionsRW}
 		s.createArtifactoryPermissions(
 			s.artifactoryClient,
-			permissionNameRO,
-			[]string{repos},
-			userRO,
+			permissionEnvNameRW,
+			repositories,
+			nil,
 			groupRW,
 		)
-		if stage == utils.ArtifactoryStageScratch || stage == utils.ArtifactoryStageStaging {
-			permissionNameRW := permissionName("rw", fields, stage)
-			s.logger.Info().Msgf("createArtifactoryPermissions(%s, %s, %s, %s)", permissionNameRW, repos, userRW, groupRW)
-			s.createArtifactoryPermissions(
-				s.artifactoryClient,
-				permissionNameRW,
-				[]string{repos},
-				userRW,
-				groupRW,
-			)
-		}
 	}
+
 	s.logger.Info().Msgf("FINISH CreateArtifactoryPermissions")
 }
