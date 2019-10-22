@@ -6,7 +6,7 @@ imports:
   subpackages:
   - pkg/artifactory
 - name: github.com/ca-gip/kubi
-  version: 574e0e7f654db1dc5eb5ef313b00d7676f01795c
+  version: 1c3d3872ea45885126684feddf725e9d631f828f
   subpackages:
   - pkg
   - pkg/apis/ca-gip/v1

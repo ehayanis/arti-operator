@@ -49,6 +49,16 @@ func permissionName(permission string, fields *types.ArtifactoryInformation) str
 		fields.ProjectName,
 		fields.Location,
 		permission)
+
+}
+
+func permissionEnvName(permission string, fields *types.ArtifactoryInformation) string {
+	return fmt.Sprintf("%s-%s-docker-%s-%s-%s",
+		fields.Tenant,
+		fields.ProjectName,
+		fields.Environment,
+		fields.Location,
+		permission)
 }
 
 func artifactoryRepositoryKey(fields *types.ArtifactoryInformation, stage string) string {
@@ -118,10 +128,12 @@ func (s *ArtifactoryService) ArtifactoryRepositoryCreate(fields *types.Artifacto
 
 func (s *ArtifactoryService) CreateArtifactoryGroup(fields *types.ArtifactoryInformation) {
 
-	groupName := fmt.Sprintf("dl_artifactory_%s_%s", fields.Tenant, fields.ProjectName)
+	groupName := fields.SourceEntity
 	group := artifactory.Group{
-		Name:        artifactory.String(groupName),
-		Description: artifactory.String(fields.Description),
+		Name:            artifactory.String(groupName),
+		Description:     artifactory.String("created by Artifactory Operator"),
+		Realm:           artifactory.String("ldap"),
+		RealmAttributes: artifactory.String(fmt.Sprintf("ldapGroupName=%s", groupName)),
 	}
 
 	resp, err := s.artifactoryClient.Security.CreateOrReplaceGroup(context.Background(), groupName, &group)
@@ -209,32 +221,27 @@ func (s *ArtifactoryService) generateUserFields(fields *types.ArtifactoryInforma
 	if mode == "RW" {
 		suffix = utils.ArtifactoryUserRWSuffix
 	} else if mode == "RO" {
-		if fields.Environment == "production" {
-			suffix = utils.ArtifactoryUserROSuffixProduction
-		} else {
-			suffix = utils.ArtifactoryUserROSuffixNonProduction
-		}
+		suffix = utils.ArtifactoryUserROSuffixNonProduction
 	}
+
 	userName := fmt.Sprintf("%s_%s_%s_%s", fields.Tenant, fields.ProjectName, fields.Location, suffix)
 	userEmail := fmt.Sprintf("%s@notanadress.ca.example.com", userName)
 	groups := &[]string{"readers"}
 	return userName, userEmail, groups
 }
 
-func (s *ArtifactoryService) createArtifactoryPermissions(
-	client *artifactory.Client,
-	permissionName string,
-	artifactoryRepositoryNames []string,
-	user *map[string][]string,
-	group *map[string][]string,
-) {
+func (s *ArtifactoryService) createArtifactoryPermissions(permissionName string, artifactoryRepositoryNames []string, user *map[string][]string, group *map[string][]string, ) {
 
 	repositories := &artifactoryRepositoryNames
 
-	//check if permissions already exists
-	existingPermission, resp, err := client.Security.GetPermissionTargets(context.Background(), permissionName)
+	//If permission already exists, existing repositories in that permission will not be erased for each call.
+	existingPermission, resp, err := s.artifactoryClient.Security.GetPermissionTargets(context.Background(), permissionName)
 	if err != nil {
-		s.logger.Error().Msgf("Error listing existing permissions : %v", err)
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			s.logger.Info().Msgf("Permission not found: %v", err)
+		} else {
+			s.logger.Error().Msgf("Error listing existing permissions : %v", err)
+		}
 	} else if existingPermission != nil {
 		*repositories = append(*repositories, *existingPermission.Repositories...)
 		*repositories = utils.Uniq(*repositories)
@@ -249,7 +256,7 @@ func (s *ArtifactoryService) createArtifactoryPermissions(
 		},
 	}
 
-	resp, err = client.Security.CreateOrReplacePermissionTargets(context.Background(), permissionName, &permissions)
+	resp, err = s.artifactoryClient.Security.CreateOrReplacePermissionTargets(context.Background(), permissionName, &permissions)
 	if err != nil {
 		s.logger.Error().Msgf("Error creating or replacing Permission : %v", err)
 	} else {
@@ -259,39 +266,47 @@ func (s *ArtifactoryService) createArtifactoryPermissions(
 }
 
 func (s *ArtifactoryService) CreateArtifactoryPermissions(fields *types.ArtifactoryInformation, users *types.ArtifactoryRepoUsers) {
-	repositories := []string{}
-	scratchRepository := []string{}
+	readOnlyRepositories := []string{}
+	readWriteRepositories := []string{}
 
 	for _, stage := range fields.Stages {
 		if stage == utils.ArtifactoryStageScratch || stage == utils.ArtifactoryStageStaging {
-			scratchRepository = append(scratchRepository, artifactoryRepositoryKey(fields, stage))
+			readWriteRepositories = append(readWriteRepositories, artifactoryRepositoryKey(fields, stage))
 		}
-		repositories = append(repositories, artifactoryRepositoryKey(fields, stage))
+		readOnlyRepositories = append(readOnlyRepositories, artifactoryRepositoryKey(fields, stage))
 	}
 
-	permissionNameRO := permissionName("ro", fields)
-	userPermissions := []string{"r"}
-	userRO := &map[string][]string{users.UserNameRO: userPermissions}
-	s.createArtifactoryPermissions(
-		s.artifactoryClient,
-		permissionNameRO,
-		repositories,
-		userRO,
-		nil,
-	)
+	permissionsRO := []string{"r"}
+	s.createServiceAccountPermissions(fields, users, permissionsRO, readOnlyRepositories, "ro")
+	s.createLDAPPermissions(fields, permissionsRO, readOnlyRepositories, "ro")
 
-	permissionNameRW := permissionName("rw", fields)
-	userPermissionsRW := []string{"d", "w", "n", "r"}
-	userRW := &map[string][]string{users.UserNameRW: userPermissionsRW}
-	groupNameRW := fmt.Sprintf("dl_artifactory_%s_%s", fields.Tenant, fields.ProjectName)
-	groupPermissionsRW := []string{"d", "w", "n", "r"}
-	groupRW := &map[string][]string{groupNameRW: groupPermissionsRW}
+	// No need to create RW permission for Production environment
+	if len(readWriteRepositories) != 0 {
+		permissionsRW := []string{"d", "w", "n", "r"}
+		s.createServiceAccountPermissions(fields, users, permissionsRW, readWriteRepositories, "rw")
+		s.createLDAPPermissions(fields, permissionsRW, readWriteRepositories, "rw")
+	}
 
-	s.createArtifactoryPermissions(
-		s.artifactoryClient,
-		permissionNameRW,
-		scratchRepository,
-		userRW,
-		groupRW,
-	)
+}
+
+func (s *ArtifactoryService) createLDAPPermissions(fields *types.ArtifactoryInformation, permissions []string, repositories []string, role string) {
+	permissionEnvName := permissionEnvName(role, fields)
+	group := &map[string][]string{fields.SourceEntity: permissions}
+	s.createArtifactoryPermissions(permissionEnvName, repositories, nil, group, )
+}
+
+func (s *ArtifactoryService) createServiceAccountPermissions(fields *types.ArtifactoryInformation, users *types.ArtifactoryRepoUsers, permissions []string, repositories []string, role string) {
+	var userRole *map[string][]string
+	userRole = setUserRole(role, userRole, users, permissions)
+	permissionName := permissionName(role, fields)
+	s.createArtifactoryPermissions(permissionName, repositories, userRole, nil, )
+}
+
+func setUserRole(role string, userRole *map[string][]string, users *types.ArtifactoryRepoUsers, permissions []string) *map[string][]string {
+	if role == "ro" {
+		userRole = &map[string][]string{users.UserNameRO: permissions}
+	} else if role == "rw" {
+		userRole = &map[string][]string{users.UserNameRW: permissions}
+	}
+	return userRole
 }

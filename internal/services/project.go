@@ -61,9 +61,9 @@ func (s *ProjectService) HandleProject(project *kubiv1.Project) error {
 		return err
 	}
 
-	if len(repos) > 0 {
+/*	if len(repos) > 0 {
 		s.createXrayResources(repos)
-	}
+	}*/
 
 	err = s.createDockerSecret(project, repos, users)
 	if err != nil {
@@ -188,6 +188,7 @@ func (s *ProjectService) generateArtifactoryFields(project *kubiv1.Project) (*ty
 		Location:    s.clusterLocation,
 		Description: utils.ArtifactoryDescription,
 		Environment: project.Spec.Environment,
+		SourceEntity: project.Spec.SourceEntity,
 	}
 
 	return fieldsArtifactory, nil
