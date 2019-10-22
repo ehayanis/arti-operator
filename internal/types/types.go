@@ -7,6 +7,8 @@ type ArtifactoryInformation struct {
 	Location    string   //param confmap
 	Description string
 	Environment string
+	SourceEntity string
+	ClusterDNSSubdomain string
 }
 
 type ArtifactoryRepoUsers struct {

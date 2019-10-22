@@ -188,6 +188,7 @@ func (s *ProjectService) generateArtifactoryFields(project *kubiv1.Project) (*ty
 		Location:    s.clusterLocation,
 		Description: utils.ArtifactoryDescription,
 		Environment: project.Spec.Environment,
+		SourceEntity: project.Spec.SourceEntity,
 	}
 
 	return fieldsArtifactory, nil
