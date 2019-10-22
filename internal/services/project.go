@@ -61,9 +61,9 @@ func (s *ProjectService) HandleProject(project *kubiv1.Project) error {
 		return err
 	}
 
-	if len(repos) > 0 {
+/*	if len(repos) > 0 {
 		s.createXrayResources(repos)
-	}
+	}*/
 
 	err = s.createDockerSecret(project, repos, users)
 	if err != nil {
