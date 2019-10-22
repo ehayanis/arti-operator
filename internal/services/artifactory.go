@@ -144,14 +144,14 @@ func (s *ArtifactoryService) CreateArtifactoryGroup(fields *types.ArtifactoryInf
 	}
 }
 
-func (s *ArtifactoryService) createArtifactoryUsers(client *artifactory.Client, userName string, email string, password string, groups *[]string) {
+func (s *ArtifactoryService) createArtifactoryUsers(client *artifactory.Client, userName string, email string, password string) {
 
 	user := artifactory.User{
 		Name:            artifactory.String(userName),
 		Email:           artifactory.String(email),
 		Password:        artifactory.String(password),
 		DisableUIAccess: artifactory.Bool(true),
-		Groups:          groups,
+		Groups:          nil,
 	}
 
 	resp, err := client.Security.CreateOrReplaceUser(context.Background(), userName, &user)
@@ -183,17 +183,17 @@ func (s *ArtifactoryService) getVaultSecret(pathVault string, userNameRW string)
 func (s *ArtifactoryService) CreateArtifactoryUsers(fields *types.ArtifactoryInformation) (*types.ArtifactoryRepoUsers, error) {
 
 	//Generate Read Only users (used for k8s only)
-	userNameRO, userEmailRO, groupsRO := s.generateUserFields(fields, "RO")
+	userNameRO, userEmailRO := s.generateUserFields(fields, "RO")
 	passwordRO, err := s.PasswordStoreService.GetUserPassword(userNameRO)
 	if err != nil {
 		s.logger.Error().Msgf("Couldn't generate password for user %v: %v", userNameRO, err)
 		return nil, err
 	}
 	s.logger.Info().Msgf("Creating RO user %v.", userNameRO)
-	s.createArtifactoryUsers(s.artifactoryClient, userNameRO, userEmailRO, passwordRO, groupsRO)
+	s.createArtifactoryUsers(s.artifactoryClient, userNameRO, userEmailRO, passwordRO)
 
 	//Generate Read Write users (used as a service account for CI)
-	userNameRW, userEmailRW, groupsRW := s.generateUserFields(fields, "RW")
+	userNameRW, userEmailRW := s.generateUserFields(fields, "RW")
 	pathVault := fmt.Sprintf("%s/%s/%s/k8s/%s-%s/artifactory", utils.VaultStore, fields.Tenant, fields.ProjectName, s.clusterDNSSubdomain, fields.Environment)
 	passwordRW, err := s.getVaultSecret(pathVault, userNameRW)
 
@@ -203,7 +203,7 @@ func (s *ArtifactoryService) CreateArtifactoryUsers(fields *types.ArtifactoryInf
 	}
 
 	//Create or Update user each time the operator pass
-	s.createArtifactoryUsers(s.artifactoryClient, userNameRW, userEmailRW, passwordRW, groupsRW)
+	s.createArtifactoryUsers(s.artifactoryClient, userNameRW, userEmailRW, passwordRW)
 
 	result := &types.ArtifactoryRepoUsers{
 		UserNameRO: userNameRO,
@@ -215,7 +215,7 @@ func (s *ArtifactoryService) CreateArtifactoryUsers(fields *types.ArtifactoryInf
 	return result, nil
 }
 
-func (s *ArtifactoryService) generateUserFields(fields *types.ArtifactoryInformation, mode string) (string, string, *[]string) {
+func (s *ArtifactoryService) generateUserFields(fields *types.ArtifactoryInformation, mode string) (string, string) {
 
 	suffix := ""
 	if mode == "RW" {
@@ -226,11 +226,10 @@ func (s *ArtifactoryService) generateUserFields(fields *types.ArtifactoryInforma
 
 	userName := fmt.Sprintf("%s_%s_%s_%s", fields.Tenant, fields.ProjectName, fields.Location, suffix)
 	userEmail := fmt.Sprintf("%s@notanadress.ca.example.com", userName)
-	groups := &[]string{"readers"}
-	return userName, userEmail, groups
+	return userName, userEmail
 }
 
-func (s *ArtifactoryService) createArtifactoryPermissions(permissionName string, artifactoryRepositoryNames []string, user *map[string][]string, group *map[string][]string, ) {
+func (s *ArtifactoryService) createArtifactoryPermissions(permissionName string, artifactoryRepositoryNames []string, user *map[string][]string, group *map[string][]string) {
 
 	repositories := &artifactoryRepositoryNames
 
@@ -292,14 +291,14 @@ func (s *ArtifactoryService) CreateArtifactoryPermissions(fields *types.Artifact
 func (s *ArtifactoryService) createLDAPPermissions(fields *types.ArtifactoryInformation, permissions []string, repositories []string, role string) {
 	permissionEnvName := permissionEnvName(role, fields)
 	group := &map[string][]string{fields.SourceEntity: permissions}
-	s.createArtifactoryPermissions(permissionEnvName, repositories, nil, group, )
+	s.createArtifactoryPermissions(permissionEnvName, repositories, nil, group)
 }
 
 func (s *ArtifactoryService) createServiceAccountPermissions(fields *types.ArtifactoryInformation, users *types.ArtifactoryRepoUsers, permissions []string, repositories []string, role string) {
 	var userRole *map[string][]string
 	userRole = setUserRole(role, userRole, users, permissions)
 	permissionName := permissionName(role, fields)
-	s.createArtifactoryPermissions(permissionName, repositories, userRole, nil, )
+	s.createArtifactoryPermissions(permissionName, repositories, userRole, nil)
 }
 
 func setUserRole(role string, userRole *map[string][]string, users *types.ArtifactoryRepoUsers, permissions []string) *map[string][]string {
