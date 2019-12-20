@@ -87,11 +87,13 @@ func (s *ProjectService) annotateNamespace(project *kubiv1.Project, repos []stri
 	var fqdnRepos []string
 
 	for _, repo := range repos {
-		fqdnRepos = append(fqdnRepos, repo+utils.FQDN)
+		fqdnRepos = append(fqdnRepos, repo+utils.Domain)
+		fqdnRepos = append(fqdnRepos, repo+utils.DomainGroup)
 	}
 
 	if utils.ArtifactoryProjectSpecEnvironment == project.Spec.Environment {
 		fqdnRepos = append(fqdnRepos, utils.DockerRemote)
+		fqdnRepos = append(fqdnRepos, utils.DockerRemoteGroup)
 	}
 
 	annotations := make(map[string]string)

@@ -1,10 +1,12 @@
 package utils
 
 const (
-	DockerRemote = "docker-remote.registry.saas.cagip.gca"
-	FQDN         = ".registry.saas.cagip.gca"
-	WhitelistKey = "whitelist-repositories"
-	VaultStore   = "secret/data"
+	DockerRemote      = "docker-remote.registry.saas.cagip.gca"
+	DockerRemoteGroup = "docker-remote.registry.saas.cagip.group.gca"
+	Domain            = ".registry.saas.cagip.gca"
+	DomainGroup       = ".registry.saas.cagip.group.gca"
+	WhitelistKey      = "whitelist-repositories"
+	VaultStore        = "secret/data"
 )
 
 // Const for Xray tests
