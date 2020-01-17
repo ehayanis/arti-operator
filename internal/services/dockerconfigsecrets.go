@@ -71,6 +71,11 @@ func generateSecretObject(ips *types.DockerConfigSecret) (*v1.Secret, error) {
 
 	for _, elt := range ips.Registries {
 		registriesBlocks[elt.Url] = getDockerConfigRegistryBlock(&elt)
+		if strings.HasSuffix(elt.Url, "cagip.gca") {
+			newUrl := strings.Replace(elt.Url, "cagip.gca", "cagip.group.gca", 1)
+			elt.Url = newUrl
+			registriesBlocks[elt.Url] = getDockerConfigRegistryBlock(&elt)
+		}
 	}
 
 	dockerConfigStruct := map[string]map[string]types.DockerConfigEntry{
