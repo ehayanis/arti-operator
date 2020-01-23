@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/ca-gip/artifactory-operator/internal/config"
-	"github.com/ca-gip/artifactory-operator/pkg/route"
 	"github.com/ca-gip/artifactory-operator/internal/services"
+	"github.com/ca-gip/artifactory-operator/pkg/route"
 
 	"github.com/ca-gip/artifactory-operator/internal/utils"
 	"github.com/ca-gip/kubi/pkg/apis/ca-gip/v1"
@@ -51,7 +51,7 @@ func main() {
 
 // WatchProjects is going to instanciate Kubernetes Client and Services (Project, Artifactory and Xray).
 // It is going to listen the Projects CRD (on creation and updates) and create or update resources
-// (artifactory client, vault secrets, xray policies and watches) through their services
+// (artifactory client, vault secrets) through their services
 func WatchProjects(operatorConfig *types.ArtifactoryOperatorConfig) cache.Store {
 
 	logger := utils.Log.With().Str("service", "watcher").Logger()

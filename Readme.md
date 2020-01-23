@@ -95,9 +95,6 @@ kubectl apply -f deployment/*
 |  **ARTI_OP_PASSWORDSTORE_BACKEND_NAMESPACE**       |  *K8S namespace wher the operator will persist passwords generated for Artifactory users*| `kube-system`| `no`     | `kube-system`           |
 |  **ARTI_OP_PASSWORDSTORE_SECRET_NAME_PREFIX**                |  *Prefix added to the names of password secrets*            | `artifactory-user` | `yes  `     | `artifactory-user`           |
 |  **ARTI_OP_VAULT_SERVER_URL**        |
-ARTI_OP_XRAY_SERVER_URL
-ARTI_OP_XRAY_SERVER_USER
-ARTI_OP_XRAY_SERVER_PASSWORD
 
 # Required permissions
 
