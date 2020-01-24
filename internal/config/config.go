@@ -100,58 +100,6 @@ func LoadConfig() (*types.ArtifactoryOperatorConfig, error) {
 		return nil, err
 	}
 
-	xrayServerUrl, ok := os.LookupEnv("ARTI_OP_XRAY_SERVER_URL")
-	if ok {
-		if strings.TrimSpace(xrayServerUrl) == "" {
-			err := errors.New("ARTI_OP_XRAY_SERVER_URL is required, but empty.")
-			return nil, err
-		}
-
-		result.XrayServerUrl = xrayServerUrl
-	} else {
-		err := errors.New("ARTI_OP_XRAY_SERVER_URL is required.")
-		return nil, err
-	}
-
-	xrayServerUser, ok := os.LookupEnv("ARTI_OP_XRAY_SERVER_USER")
-	if ok {
-		if strings.TrimSpace(xrayServerUser) == "" {
-			err := errors.New("ARTI_OP_XRAY_SERVER_USER is required, but empty.")
-			return nil, err
-		}
-
-		result.XrayServerUser = xrayServerUser
-	} else {
-		err := errors.New("ARTI_OP_XRAY_SERVER_USER is required.")
-		return nil, err
-	}
-
-	xrayServerPassword, ok := os.LookupEnv("ARTI_OP_XRAY_SERVER_PASSWORD")
-	if ok {
-		if strings.TrimSpace(xrayServerPassword) == "" {
-			err := errors.New("ARTI_OP_XRAY_SERVER_PASSWORD is required, but empty.")
-			return nil, err
-		}
-
-		result.XrayServerPassword = xrayServerPassword
-	} else {
-		err := errors.New("ARTI_OP_XRAY_SERVER_PASSWORD is required.")
-		return nil, err
-	}
-
-	xrayBinMgrID, ok := os.LookupEnv("ARTI_OP_XRAY_BINMGRID")
-	if ok {
-		if strings.TrimSpace(xrayBinMgrID) == "" {
-			err := errors.New("ARTI_OP_XRAY_BINMGRID is required, but empty.")
-			return nil, err
-		}
-
-		result.XrayBinMgrID = xrayBinMgrID
-	} else {
-		err := errors.New("ARTI_OP_XRAY_BINMGRID is required.")
-		return nil, err
-	}
-
 	clusterDNSSubdomain, ok := os.LookupEnv("ARTI_OP_CLUSTER_DNSSUBDOMAIN")
 	if ok {
 		if strings.TrimSpace(clusterDNSSubdomain) == "" {

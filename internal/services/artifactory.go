@@ -96,7 +96,6 @@ func (s *ArtifactoryService) ArtifactoryRepositoryCreate(fields *types.Artifacto
 			PackageType:     artifactory.String("docker"),
 			HandleSnapshots: artifactory.Bool(false),
 			Description:     artifactory.String(fields.Description),
-			XrayIndex:       artifactory.Bool(true),
 		}
 
 		existingRepo, response, err := s.artifactoryClient.Repositories.GetLocal(context.Background(), artifactoryRepositoryName)

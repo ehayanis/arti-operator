@@ -122,13 +122,6 @@ imports:
   version: ffdc059bfe9ce6a4e144ba849dbedead332c6053
   subpackages:
   - assert
-- name: gitlab.com/aurelien.gabet/go-xray-cli
-  version: 53a9c06021e5a01601b1bbffb3ec24951c1ad16d
-  repo: https://gitlab.com/aurelien.gabet/go-xray-cli.git
-  subpackages:
-  - internal/utils
-  - pkg/types
-  - pkg/xray
 - name: goji.io
   version: 490b001d03d16a116d7c44d95d216c69a1aae798
   subpackages:

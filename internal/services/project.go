@@ -19,14 +19,12 @@ type ProjectService struct {
 	artifactoryService         *ArtifactoryService
 	artifactoryHostBase        string
 	clusterLocation            string
-	xrayService                *XrayService
 	kClient                    *kubernetes.Clientset
 }
 
 func NewProjectService(operatorConfig *types.ArtifactoryOperatorConfig,
 	dockerConfigSecretsService *DockerConfigSecretsService,
 	artifactoryService *ArtifactoryService,
-	xrayService *XrayService,
 	kconfig *rest.Config) (*ProjectService, error) {
 	logger := utils.Log.With().Str("service", "project").Logger()
 
@@ -48,7 +46,6 @@ func NewProjectService(operatorConfig *types.ArtifactoryOperatorConfig,
 		artifactoryService:         artifactoryService,
 		clusterLocation:            operatorConfig.ClusterLocation,
 		artifactoryHostBase:        parsedArtifactoryUri.Host,
-		xrayService:                xrayService,
 		kClient:                    kubeClient,
 	}
 
@@ -60,10 +57,6 @@ func (s *ProjectService) HandleProject(project *kubiv1.Project) error {
 	if err != nil {
 		return err
 	}
-
-/*	if len(repos) > 0 {
-		s.createXrayResources(repos)
-	}*/
 
 	err = s.createDockerSecret(project, repos, users)
 	if err != nil {
@@ -106,11 +99,6 @@ func (s *ProjectService) annotateNamespace(project *kubiv1.Project, repos []stri
 	}
 
 	return nil
-}
-
-func (s *ProjectService) createXrayResources(repos []string) {
-	s.xrayService.createXrayPolicy(repos)
-	s.xrayService.createXrayWatch(repos)
 }
 
 func (s *ProjectService) createDockerSecret(project *kubiv1.Project, repos []string, users *types.ArtifactoryRepoUsers) error {
@@ -184,12 +172,12 @@ func (s *ProjectService) generateArtifactoryFields(project *kubiv1.Project) (*ty
 
 	projectNameWithoutTenant := strings.TrimPrefix(project.Spec.Project, project.Spec.Tenant+"-")
 	fieldsArtifactory := &types.ArtifactoryInformation{
-		Tenant:      project.Spec.Tenant,
-		ProjectName: projectNameWithoutTenant,
-		Stages:      project.Spec.Stages,
-		Location:    s.clusterLocation,
-		Description: utils.ArtifactoryDescription,
-		Environment: project.Spec.Environment,
+		Tenant:       project.Spec.Tenant,
+		ProjectName:  projectNameWithoutTenant,
+		Stages:       project.Spec.Stages,
+		Location:     s.clusterLocation,
+		Description:  utils.ArtifactoryDescription,
+		Environment:  project.Spec.Environment,
 		SourceEntity: project.Spec.SourceEntity,
 	}
 

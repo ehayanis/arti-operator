@@ -1,13 +1,13 @@
 package types
 
 type ArtifactoryInformation struct {
-	Tenant      string
-	ProjectName string   // cr
-	Stages      []string // cr
-	Location    string   //param confmap
-	Description string
-	Environment string
-	SourceEntity string
+	Tenant              string
+	ProjectName         string   // cr
+	Stages              []string // cr
+	Location            string   //param confmap
+	Description         string
+	Environment         string
+	SourceEntity        string
 	ClusterDNSSubdomain string
 }
 
@@ -44,9 +44,5 @@ type ArtifactoryOperatorConfig struct {
 	ArtifactoryServerPassword     string
 	VaultServerToken              string
 	VaultServerUrl                string
-	XrayServerUrl                 string
-	XrayServerUser                string
-	XrayServerPassword            string
-	XrayBinMgrID                  string
 	ClusterDNSSubdomain           string
 }

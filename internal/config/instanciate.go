@@ -34,14 +34,9 @@ func InstanciateServices(kconfig *rest.Config, operatorConfig *types.Artifactory
 		logger.Error().Msgf("Couldn't create Artifactory service: %v", err)
 	}
 
-	xrayService, err := services.NewXrayService(operatorConfig)
-	if err != nil {
-		logger.Error().Msgf("Couldn't create Xray service: %v", err)
-	}
-
 	dockerConfigSecretsService := services.NewDockerConfigSecretsService(kconfig)
 
-	projectService, err := services.NewProjectService(operatorConfig, dockerConfigSecretsService, artifactoryService, xrayService, kconfig)
+	projectService, err := services.NewProjectService(operatorConfig, dockerConfigSecretsService, artifactoryService, kconfig)
 	if err != nil {
 		logger.Error().Msgf("Couldn't create Project service: %v", err)
 	}
