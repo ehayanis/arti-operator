@@ -20,7 +20,7 @@ Build:
     - docker push $IMAGE_BASE_NAME:$(cat version.txt)-dev
 
 Mutu Hors Prod:
-  image: docker-remote.registry.saas.cagip.group.gca/agabet/alpine-curl:0.2
+  image: cagip-hub.registry.saas.cagip.group.gca/alpine-curl
   stage: Deploy
   when: on_success
   variables:
@@ -34,7 +34,7 @@ Mutu Hors Prod:
       ./cd-operators.sh 00-Kube-Operators-Dev
 
 Promote Image:
-  image: docker-remote.registry.saas.cagip.group.gca/agabet/alpine-curl:0.2
+  image: cagip-hub.registry.saas.cagip.group.gca/alpine-curl
   stage: Promote
   variables:
     HTTP_PROXY: http://$PROXY_RUNNER
@@ -47,7 +47,7 @@ Promote Image:
       curl -u "silca-tools-docker-scratch-intranet:$AD_PASSWD" -X POST "https://silca-tools-docker-scratch-intranet.registry.saas.cagip.gca/v2/promote" -H "Content-Type: application/json" -kv -d "{ \"targetRepo\":\"silca-tools-docker-stable-intranet\", \"dockerRepository\":\"artifactory-operator\", \"tag\":\"$(cat version.txt)-dev\", \"targetTag\":\"$(cat version.txt)-master\" ,\"copy\":\"true\" }"
 
 All Clusters:
-  image: docker-remote.registry.saas.cagip.group.gca/agabet/alpine-curl:0.2
+  image: cagip-hub.registry.saas.cagip.group.gca/alpine-curl
   stage: Deploy
   variables:
     HTTP_PROXY: http://$PROXY_RUNNER
