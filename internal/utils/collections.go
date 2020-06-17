@@ -73,3 +73,48 @@ func Uniq(strSlice []string) []string {
 	}
 	return list
 }
+
+// Equal tells whether a and b contain the same elements.
+// A nil argument is equivalent to an empty slice.
+func Equal(a, b *[]string) bool {
+	if a == b && a == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	left := *a
+	right := *b
+
+	if len(left) != len(right) {
+		return false
+	}
+	for _, v := range right {
+		if !Include(left, v) {
+			return false
+		}
+	}
+	return true
+}
+
+func MapEquals(a, b *map[string][]string) bool {
+	if a == b && a == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	left := *a
+	right := *b
+
+	for key, value := range right {
+		if otherValue, exist := left[key]; exist {
+			if !Equal(&otherValue, &value) {
+				return false
+			}
+		} else {
+			return false
+		}
+	}
+	return true
+}

@@ -109,7 +109,6 @@ func (s *ArtifactoryService) ArtifactoryRepositoryCreate(fields *types.Artifacto
 				continue
 			}
 		} else if response.StatusCode != http.StatusNotFound && existingRepo != nil {
-			s.logger.Info().Msgf("Looking update for desc: %s=%s, snapshots: %s=%s, package: %s=%s, rclass: %s=%s", repo.Description, existingRepo.Description, repo.HandleSnapshots, existingRepo.HandleSnapshots, repo.PackageType, existingRepo.PackageType, repo.RClass, existingRepo.RClass)
 			if *repo.Description == *existingRepo.Description && *repo.HandleSnapshots == *existingRepo.HandleSnapshots && *repo.PackageType == *existingRepo.PackageType && *repo.RClass == *existingRepo.RClass {
 				s.logger.Info().Msgf("Update not necessary, skipping the repository %v", artifactoryRepositoryName)
 				continue
@@ -176,18 +175,23 @@ func (s *ArtifactoryService) createArtifactoryUsers(client *artifactory.Client, 
 
 	if resp.StatusCode == http.StatusNotFound {
 		resp, err = client.Security.CreateOrReplaceUser(context.Background(), userName, &user)
-	} else if *existingUser.Password != *user.Password || *existingUser.DisableUIAccess != *user.DisableUIAccess || *existingUser.Email != *user.Email {
-		existingUser.Password = user.Password
+		if err != nil {
+			s.logger.Info().Msgf("Users %s created", userName)
+		}
+	} else if *existingUser.DisableUIAccess != *user.DisableUIAccess || *existingUser.Email != *user.Email {
 		existingUser.Email = user.Email
 		existingUser.DisableUIAccess = user.DisableUIAccess
+		existingUser.Password = user.Password
 		resp, err = client.Security.CreateOrReplaceUser(context.Background(), userName, existingUser)
+		if err != nil {
+			s.logger.Info().Msgf("Users %s updated", userName)
+		}
 	}
 
 	if err != nil {
-		s.logger.Error().Msgf("Error creating or replacing user: %v", err)
-	} else {
-		s.logger.Info().Msgf("%d: Users %s created or replaced", resp.StatusCode, userName)
+		s.logger.Info().Msgf("Technical error occured during user creation/update", err)
 	}
+
 }
 
 func (s *ArtifactoryService) getVaultSecret(pathVault string, userNameRW string) (string, error) {
@@ -217,7 +221,7 @@ func (s *ArtifactoryService) CreateArtifactoryUsers(fields *types.ArtifactoryInf
 		s.logger.Error().Msgf("Couldn't generate password for user %v: %v", userNameRO, err)
 		return nil, err
 	}
-	s.logger.Info().Msgf("Creating RO user %v.", userNameRO)
+
 	s.createArtifactoryUsers(s.artifactoryClient, userNameRO, userEmailRO, passwordRO)
 
 	//Generate Read Write users (used as a service account for CI)
@@ -260,35 +264,37 @@ func (s *ArtifactoryService) generateUserFields(fields *types.ArtifactoryInforma
 // TODO Elie, vérifier si possibilité de désactiver l'update quand les groups sont equivalents ainsi que les repositories
 func (s *ArtifactoryService) createArtifactoryPermissions(permissionName string, artifactoryRepositoryNames []string, user *map[string][]string, group *map[string][]string) {
 
-	repositories := &artifactoryRepositoryNames
-
-	//If permission already exists, existing repositories in that permission will not be erased for each call.
-	existingPermission, resp, err := s.artifactoryClient.Security.GetPermissionTargets(context.Background(), permissionName)
-	if err != nil {
-		if resp != nil && resp.StatusCode == http.StatusNotFound {
-			s.logger.Info().Msgf("Permission not found: %v", err)
-		} else {
-			s.logger.Error().Msgf("Error listing existing permissions : %v", err)
-		}
-	} else if existingPermission != nil {
-		*repositories = append(*repositories, *existingPermission.Repositories...)
-		*repositories = utils.Uniq(*repositories)
-	}
-
+	// Initializing default struct
 	permissions := artifactory.PermissionTargets{
 		Name:         artifactory.String(permissionName),
-		Repositories: repositories,
+		Repositories: &artifactoryRepositoryNames,
 		Principals: &artifactory.Principals{
 			Users:  user,
 			Groups: group,
 		},
 	}
 
-	resp, err = s.artifactoryClient.Security.CreateOrReplacePermissionTargets(context.Background(), permissionName, &permissions)
-	if err != nil {
-		s.logger.Error().Msgf("Error creating or replacing Permission : %v", err)
+	existingPermissions, resp, err := s.artifactoryClient.Security.GetPermissionTargets(context.Background(), permissionName)
+	if resp.StatusCode == http.StatusNotFound {
+		resp, err = s.artifactoryClient.Security.CreateOrReplacePermissionTargets(context.Background(), permissionName, &permissions)
+		if err == nil {
+			s.logger.Info().Msgf("%d: Permission %s created", resp.StatusCode, permissionName)
+		}
 	} else {
-		s.logger.Info().Msgf("%d: Permission %s created or replaced", resp.StatusCode, permissionName)
+		repositories := &artifactoryRepositoryNames
+		*repositories = append(*repositories, *existingPermissions.Repositories...)
+		*repositories = utils.Uniq(*repositories)
+
+		if (!utils.Equal(existingPermissions.Repositories, repositories)) || !utils.MapEquals(existingPermissions.Principals.Groups, group) {
+			resp, err = s.artifactoryClient.Security.CreateOrReplacePermissionTargets(context.Background(), permissionName, &permissions)
+			if err == nil {
+				s.logger.Info().Msgf("%d: Permission %s replaced for repository %v", resp.StatusCode, permissionName, *repositories)
+			}
+		}
+	}
+
+	if err != nil {
+		s.logger.Error().Msgf("Technical Error occured during permission creation/update: '%s'", err.Error())
 	}
 
 }
