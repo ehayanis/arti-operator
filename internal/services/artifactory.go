@@ -84,7 +84,6 @@ func (s *ArtifactoryService) ArtifactoryRepositoryCreate(fields *types.Artifacto
 
 	for _, stage := range fields.Stages {
 		artifactoryRepositoryName := artifactoryRepositoryKey(fields, stage)
-		s.logger.Info().Msgf("Creating/updating repo %v", artifactoryRepositoryName)
 
 		if stageInFields(stage, fields) {
 			result = append(result, artifactoryRepositoryName)
@@ -150,13 +149,12 @@ func (s *ArtifactoryService) CreateArtifactoryGroup(fields *types.ArtifactoryInf
 
 	//TODO Elie, y aller plus finnement avec le vrai code NotFound
 	if resp.StatusCode >= 400 {
+		s.logger.Info().Msgf("Group %v doesn't exist. Will be created", groupName)
 		resp, err = s.artifactoryClient.Security.CreateOrReplaceGroup(context.Background(), groupName, group)
 	}
 
 	if err != nil {
 		s.logger.Error().Msgf("Error creating or replacing group: %v", err)
-	} else {
-		s.logger.Info().Msgf("%d: Group %s created or replaced", resp.StatusCode, groupName)
 	}
 }
 
@@ -178,7 +176,7 @@ func (s *ArtifactoryService) createArtifactoryUsers(client *artifactory.Client, 
 
 	if resp.StatusCode == http.StatusNotFound {
 		resp, err = client.Security.CreateOrReplaceUser(context.Background(), userName, &user)
-	} else if existingUser.Password != user.Password || existingUser.DisableUIAccess != user.DisableUIAccess || existingUser.Email != user.Email {
+	} else if *existingUser.Password != *user.Password || *existingUser.DisableUIAccess != *user.DisableUIAccess || *existingUser.Email != *user.Email {
 		existingUser.Password = user.Password
 		existingUser.Email = user.Email
 		existingUser.DisableUIAccess = user.DisableUIAccess
