@@ -110,6 +110,11 @@ func (s *ArtifactoryService) ArtifactoryRepositoryCreate(fields *types.Artifacto
 				continue
 			}
 		} else if response.StatusCode != http.StatusNotFound && existingRepo != nil {
+			if repo.Description == existingRepo.Description && repo.HandleSnapshots == existingRepo.HandleSnapshots && repo.PackageType == existingRepo.PackageType && repo.RClass == existingRepo.RClass {
+				s.logger.Info().Msgf("Update not necessary, skipping the repository %v", artifactoryRepositoryName)
+				continue
+			}
+
 			resp, err := s.artifactoryClient.Repositories.UpdateLocal(context.Background(), artifactoryRepositoryName, &repo)
 			if err != nil {
 				s.logger.Error().Msgf("Could not update artifactory repo %v: %v", artifactoryRepositoryName, err)
@@ -128,14 +133,25 @@ func (s *ArtifactoryService) ArtifactoryRepositoryCreate(fields *types.Artifacto
 func (s *ArtifactoryService) CreateArtifactoryGroup(fields *types.ArtifactoryInformation) {
 
 	groupName := fields.SourceEntity
-	group := artifactory.Group{
+	group := &artifactory.Group{
 		Name:            artifactory.String(groupName),
 		Description:     artifactory.String("created by Artifactory Operator"),
 		Realm:           artifactory.String("ldap"),
 		RealmAttributes: artifactory.String(fmt.Sprintf("ldapGroupName=%s", groupName)),
 	}
 
-	resp, err := s.artifactoryClient.Security.CreateOrReplaceGroup(context.Background(), groupName, &group)
+	group, resp, err := s.artifactoryClient.Security.GetGroup(context.Background(), groupName)
+
+	if err != nil {
+		s.logger.Error().Msgf("Technical error during group creation: %v", err)
+		return
+	}
+
+	//TODO Elie, y aller plus finnement avec le vrai code NotFound
+	if resp.StatusCode >= 400 {
+		resp, err = s.artifactoryClient.Security.CreateOrReplaceGroup(context.Background(), groupName, group)
+	}
+
 	if err != nil {
 		s.logger.Error().Msgf("Error creating or replacing group: %v", err)
 	} else {
@@ -153,7 +169,21 @@ func (s *ArtifactoryService) createArtifactoryUsers(client *artifactory.Client, 
 		Groups:          nil,
 	}
 
-	resp, err := client.Security.CreateOrReplaceUser(context.Background(), userName, &user)
+	existingUser, resp, err := client.Security.GetUser(context.Background(), userName)
+	if err != nil {
+		s.logger.Error().Msgf("Technical error during user fetch: %v", err)
+		return
+	}
+
+	if resp.StatusCode == http.StatusNotFound {
+		resp, err = client.Security.CreateOrReplaceUser(context.Background(), userName, &user)
+	} else if existingUser.Password != user.Password || existingUser.DisableUIAccess != user.DisableUIAccess || existingUser.Email != user.Email {
+		existingUser.Password = user.Password
+		existingUser.Email = user.Email
+		existingUser.DisableUIAccess = user.DisableUIAccess
+		resp, err = client.Security.CreateOrReplaceUser(context.Background(), userName, existingUser)
+	}
+
 	if err != nil {
 		s.logger.Error().Msgf("Error creating or replacing user: %v", err)
 	} else {
@@ -228,6 +258,7 @@ func (s *ArtifactoryService) generateUserFields(fields *types.ArtifactoryInforma
 	return userName, userEmail
 }
 
+// TODO Elie, vérifier si possibilité de désactiver l'update quand les groups sont equivalents ainsi que les repositories
 func (s *ArtifactoryService) createArtifactoryPermissions(permissionName string, artifactoryRepositoryNames []string, user *map[string][]string, group *map[string][]string) {
 
 	repositories := &artifactoryRepositoryNames
