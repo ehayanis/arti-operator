@@ -109,7 +109,7 @@ func (s *ArtifactoryService) ArtifactoryRepositoryCreate(fields *types.Artifacto
 				continue
 			}
 		} else if response.StatusCode != http.StatusNotFound && existingRepo != nil {
-			s.logger.Info().Msgf("Looking update for desc: %v=%v, snapshots: %v=%v, package: %v=%v, rclass: %v=%v", *repo.Description, *existingRepo.Description, *repo.HandleSnapshots, *existingRepo.HandleSnapshots, *repo.PackageType, *existingRepo.PackageType, *repo.RClass, *existingRepo.RClass)
+			s.logger.Info().Msgf("Looking update for desc: %s=%s, snapshots: %s=%s, package: %s=%s, rclass: %s=%s", repo.Description, existingRepo.Description, repo.HandleSnapshots, existingRepo.HandleSnapshots, repo.PackageType, existingRepo.PackageType, repo.RClass, existingRepo.RClass)
 			if *repo.Description == *existingRepo.Description && *repo.HandleSnapshots == *existingRepo.HandleSnapshots && *repo.PackageType == *existingRepo.PackageType && *repo.RClass == *existingRepo.RClass {
 				s.logger.Info().Msgf("Update not necessary, skipping the repository %v", artifactoryRepositoryName)
 				continue
