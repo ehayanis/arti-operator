@@ -97,13 +97,7 @@ func projectUpdate(new interface{}, projectService *services.ProjectService) {
 		utils.Log.Error().Msgf("Error, project resource does not have mandatory parameter to fill Artifactory: %v", err)
 		return
 	}
-
 	err = projectService.HandleProject(newProject)
-	if err != nil {
-		utils.Log.Error().Msgf("Error when creating assets in artifactory: %v", err)
-	} else {
-		utils.Log.Info().Msgf("Operator: the project %v has been updated, updating associated resources: artifactory repositories, users, groups and permissions.", newProject.Name)
-	}
 
 }
 
@@ -117,9 +111,4 @@ func projectCreated(obj interface{}, projectService *services.ProjectService) {
 	}
 
 	err = projectService.HandleProject(project)
-	if err != nil {
-		utils.Log.Error().Msgf("Error when creating assets in artifactory: %v", err)
-	} else {
-		utils.Log.Info().Msgf("Operator: the project %v has been created, generating associated resources: artifactory repositories, users, groups and permissions.", project.Name)
-	}
 }
