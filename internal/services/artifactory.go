@@ -110,7 +110,7 @@ func (s *ArtifactoryService) ArtifactoryRepositoryCreate(fields *types.Artifacto
 			}
 		} else if response.StatusCode != http.StatusNotFound && existingRepo != nil {
 			if *repo.Description == *existingRepo.Description && *repo.HandleSnapshots == *existingRepo.HandleSnapshots && *repo.PackageType == *existingRepo.PackageType && *repo.RClass == *existingRepo.RClass {
-				s.logger.Info().Msgf("Update not necessary, skipping the repository %v", artifactoryRepositoryName)
+				s.logger.Debug().Msgf("Update not necessary, skipping the repository %v", artifactoryRepositoryName)
 				continue
 			}
 
@@ -141,19 +141,13 @@ func (s *ArtifactoryService) CreateArtifactoryGroup(fields *types.ArtifactoryInf
 
 	group, resp, err := s.artifactoryClient.Security.GetGroup(context.Background(), groupName)
 
-	if err != nil {
-		s.logger.Error().Msgf("Technical error during group creation: %v", err)
-		return
-	}
-
-	//TODO Elie, y aller plus finnement avec le vrai code NotFound
-	if resp.StatusCode >= 400 {
+	if resp.StatusCode == http.StatusNotFound {
 		s.logger.Info().Msgf("Group %v doesn't exist. Will be created", groupName)
 		resp, err = s.artifactoryClient.Security.CreateOrReplaceGroup(context.Background(), groupName, group)
 	}
 
 	if err != nil {
-		s.logger.Error().Msgf("Error creating or replacing group: %v", err)
+		s.logger.Error().Msgf("Technical error occured during replacing group: %v", err)
 	}
 }
 
@@ -209,7 +203,7 @@ func (s *ArtifactoryService) getVaultSecret(pathVault string, userNameRW string)
 	} else if changed {
 		s.logger.Info().Msgf("Password created and stored in Vault server for user %v", userNameRW)
 	} else if !changed {
-		s.logger.Info().Msgf("Update for password is not necessary %v", userNameRW)
+		s.logger.Debug().Msgf("Update for password is not necessary %v", userNameRW)
 	}
 	return passwordRW, nil
 }
@@ -280,7 +274,7 @@ func (s *ArtifactoryService) createArtifactoryPermissions(permissionName string,
 	if resp.StatusCode == http.StatusNotFound {
 		resp, err = s.artifactoryClient.Security.CreateOrReplacePermissionTargets(context.Background(), permissionName, &permissions)
 		if err == nil {
-			s.logger.Info().Msgf("%d: Permission %s created", resp.StatusCode, permissionName)
+			s.logger.Info().Msgf("Permission %s created", resp.StatusCode, permissionName)
 		}
 	} else {
 		repositories := &artifactoryRepositoryNames
@@ -290,7 +284,7 @@ func (s *ArtifactoryService) createArtifactoryPermissions(permissionName string,
 		if (!utils.Equal(existingPermissions.Repositories, repositories)) || !utils.MapEquals(existingPermissions.Principals.Groups, group) {
 			resp, err = s.artifactoryClient.Security.CreateOrReplacePermissionTargets(context.Background(), permissionName, &permissions)
 			if err == nil {
-				s.logger.Info().Msgf("%d: Permission %s replaced for repository %v", resp.StatusCode, permissionName, *repositories)
+				s.logger.Info().Msgf("Permission %s replaced for repository %v", resp.StatusCode, permissionName, *repositories)
 			}
 		}
 	}
