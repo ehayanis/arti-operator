@@ -202,13 +202,15 @@ func (s *ArtifactoryService) getVaultSecret(pathVault string, userNameRW string)
 			userNameRW: passwordRW,
 		},
 	}
-	_, err = VaultWriteSecret(s.PasswordStoreService.clientVault, secretData, pathVault)
+	_, err, changed := VaultWriteSecret(s.PasswordStoreService.clientVault, secretData, pathVault)
 	if err != nil {
 		s.logger.Error().Msgf("Couldn't write secret in to vault for user %v: %v", userNameRW, err)
 		return "", nil
+	} else if changed {
+		s.logger.Info().Msgf("Password created and stored in Vault server for user %v", userNameRW)
+	} else if !changed {
+		s.logger.Info().Msgf("Update for password is not necessary %v", userNameRW)
 	}
-
-	s.logger.Info().Msgf("Password created and stored in Vault server for user %v", userNameRW)
 	return passwordRW, nil
 }
 

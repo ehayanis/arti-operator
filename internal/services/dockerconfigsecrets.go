@@ -50,7 +50,7 @@ func (s *DockerConfigSecretsService) CreateOrUpdateDockerConfigSecret(namespace 
 	if err != nil {
 		if k8serrors.IsAlreadyExists(err) {
 			// Secret already exists, replace it with our version
-			s.logger.Info().Msgf("Updating secret for namespace %v.", namespace)
+			s.logger.Info().Msgf("Updating docker secret for namespace %v.", namespace)
 			updatedSecret, err := secretsClient.Update(secret)
 
 			if err != nil {
