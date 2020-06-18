@@ -162,10 +162,6 @@ func (s *ArtifactoryService) createArtifactoryUsers(client *artifactory.Client, 
 	}
 
 	existingUser, resp, err := client.Security.GetUser(context.Background(), userName)
-	if err != nil {
-		s.logger.Error().Msgf("Technical error during user fetch: %v", err)
-		return
-	}
 
 	if resp.StatusCode == http.StatusNotFound {
 		resp, err = client.Security.CreateOrReplaceUser(context.Background(), userName, &user)
