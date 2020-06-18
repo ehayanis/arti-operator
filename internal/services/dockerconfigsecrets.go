@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"github.com/ca-gip/artifactory-operator/internal/types"
+	"reflect"
 	"strings"
 
 	"github.com/ca-gip/artifactory-operator/internal/utils"
@@ -29,41 +30,32 @@ func NewDockerConfigSecretsService(kconfig *rest.Config) *DockerConfigSecretsSer
 	return result
 }
 
-func (s *DockerConfigSecretsService) CreateOrUpdateDockerConfigSecret(namespace string, ips *types.DockerConfigSecret) (*v1.Secret, error) {
+func (s *DockerConfigSecretsService) CreateOrUpdateDockerConfigSecret(namespace string, ips *types.DockerConfigSecret) (returnedSecret *v1.Secret, err error) {
 	secret, err := generateSecretObject(ips)
-
 	if err != nil {
-		return nil, err
+		return
 	}
 
 	coreClient, err := kubernetes.NewForConfig(s.clientConfig)
-
 	if err != nil {
 		s.logger.Info().Err(err).Msg("Cannot get kubernetes core API client.")
-		return nil, err
+		return
 	}
 
 	secretsClient := coreClient.CoreV1().Secrets(namespace)
 
-	createdSecret, err := secretsClient.Create(secret)
-
-	if err != nil {
-		if k8serrors.IsAlreadyExists(err) {
-			// Secret already exists, replace it with our version
-			s.logger.Info().Msgf("Updating docker secret for namespace %v.", namespace)
-			updatedSecret, err := secretsClient.Update(secret)
-
-			if err != nil {
-				return nil, err
-			}
-
-			return updatedSecret, nil
-		} else {
-			return nil, err
-		}
+	existingsecret, err := secretsClient.Get(secret.Name, metav1.GetOptions{})
+	if k8serrors.IsNotFound(err) {
+		s.logger.Info().Msgf("Creating docker config secret: %v for namespace: %v", ips.Name, namespace)
+		returnedSecret, err = secretsClient.Create(secret)
+	} else if !reflect.DeepEqual(existingsecret.Data, secret.Data) {
+		s.logger.Info().Msgf("Updating docker config secret: %v for namespace: %v", ips.Name, namespace)
+		returnedSecret, err = secretsClient.Update(secret)
+	} else {
+		s.logger.Debug().Msgf("Skipping docker config secret update: %v for namespace: %v", ips.Name, namespace)
 	}
 
-	return createdSecret, nil
+	return
 }
 
 func generateSecretObject(ips *types.DockerConfigSecret) (*v1.Secret, error) {

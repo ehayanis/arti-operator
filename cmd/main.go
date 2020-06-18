@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/ca-gip/artifactory-operator/internal/types"
+	"github.com/rs/zerolog"
 	"goji.io"
 	"goji.io/pat"
 	"net/http"
@@ -32,6 +33,13 @@ func debugHandler(next http.Handler) http.Handler {
 }
 
 func main() {
+
+	// Get Level debug configurable if DEBUG env var exist (don't care about the value)
+	_, debug := os.LookupEnv("DEBUG")
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	if debug {
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	}
 
 	operatorConfig, err := config.LoadConfig()
 
