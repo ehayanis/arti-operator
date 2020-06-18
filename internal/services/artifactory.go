@@ -176,6 +176,8 @@ func (s *ArtifactoryService) createArtifactoryUsers(client *artifactory.Client, 
 		if err == nil {
 			s.logger.Info().Msgf("Users %s updated", userName)
 		}
+	} else {
+		s.logger.Debug().Msgf("Skipping User %s, up to date.", userName)
 	}
 
 	if err != nil {
