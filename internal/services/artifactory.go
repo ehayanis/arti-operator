@@ -281,7 +281,9 @@ func (s *ArtifactoryService) createArtifactoryPermissions(permissionName string,
 		*repositories = append(*repositories, *existingPermissions.Repositories...)
 		*repositories = utils.Uniq(*repositories)
 
-		if (!utils.Equal(existingPermissions.Repositories, repositories)) || !utils.MapEquals(existingPermissions.Principals.Groups, group) {
+		expectedGroups := utils.MapConcat(existingPermissions.Principals.Groups, group)
+		if (!utils.Equal(existingPermissions.Repositories, repositories)) || !utils.MapEquals(existingPermissions.Principals.Groups, expectedGroups) {
+			permissions.Principals.Groups = expectedGroups
 			resp, err = s.artifactoryClient.Security.CreateOrReplacePermissionTargets(context.Background(), permissionName, &permissions)
 			if err == nil {
 				s.logger.Info().Msgf("Permission %s replaced for repository %v", resp.StatusCode, permissionName, *repositories)

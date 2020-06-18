@@ -118,3 +118,32 @@ func MapEquals(a, b *map[string][]string) bool {
 	}
 	return true
 }
+
+func MapConcat(a, b *map[string][]string) *map[string][]string {
+	if a == b && a == nil {
+		return nil
+	}
+	if a == nil {
+		return b
+	}
+	if b == nil {
+		return a
+	}
+	left := *a
+	right := *b
+
+	result := map[string][]string{}
+	for key, _ := range right {
+		if _, exist := left[key]; exist {
+			result[key] = Uniq(append(left[key], right[key]...))
+		} else {
+			result[key] = Uniq(right[key])
+		}
+	}
+	for key, _ := range left {
+		if _, exist := right[key]; !exist {
+			result[key] = Uniq(left[key])
+		}
+	}
+	return &result
+}
