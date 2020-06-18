@@ -26,7 +26,7 @@ func VaultConnect(vaultURL string, vaultBasePathToken string) (*api.Client, erro
 func VaultWriteSecret(c *api.Client, secretData map[string]interface{}, path string) (secret *api.Secret, status error, changed bool) {
 	changed = false
 	secret, status = VaultReadSecret(c, path)
-	if status != nil || !reflect.DeepEqual(secret.Data["data"], secretData["data"]) {
+	if (status != nil || secret == nil) || !reflect.DeepEqual(secret.Data["data"], secretData["data"]) {
 		secret, status = c.Logical().Write(path, secretData)
 		changed = true
 	}
