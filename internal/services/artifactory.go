@@ -165,7 +165,7 @@ func (s *ArtifactoryService) createArtifactoryUsers(client *artifactory.Client, 
 
 	if resp.StatusCode == http.StatusNotFound {
 		resp, err = client.Security.CreateOrReplaceUser(context.Background(), userName, &user)
-		if err != nil {
+		if err == nil {
 			s.logger.Info().Msgf("Users %s created", userName)
 		}
 	} else if *existingUser.DisableUIAccess != *user.DisableUIAccess || *existingUser.Email != *user.Email {
@@ -173,13 +173,13 @@ func (s *ArtifactoryService) createArtifactoryUsers(client *artifactory.Client, 
 		existingUser.DisableUIAccess = user.DisableUIAccess
 		existingUser.Password = user.Password
 		resp, err = client.Security.CreateOrReplaceUser(context.Background(), userName, existingUser)
-		if err != nil {
+		if err == nil {
 			s.logger.Info().Msgf("Users %s updated", userName)
 		}
 	}
 
 	if err != nil {
-		s.logger.Info().Msgf("Technical error occured during user creation/update", err)
+		s.logger.Error().Msgf("Technical error occured during user creation/update: %s", err.Error())
 	}
 
 }
