@@ -113,6 +113,19 @@ func LoadConfig() (*types.ArtifactoryOperatorConfig, error) {
 		return nil, err
 	}
 
+	customerOPS, ok := os.LookupEnv("LDAP_CUSTOMER_OPS_GROUPBASE")
+	if ok {
+		if strings.TrimSpace(customerOPS) == "" {
+			err := errors.New("LDAP_CUSTOMER_OPS_GROUPBASE is required, but empty.")
+			return nil, err
+		}
+
+		result.LDAPGroups.CustomerOPS = customerOPS
+	} else {
+		err := errors.New("LDAP_CUSTOMER_OPS_GROUPBASE is required.")
+		return nil, err
+	}
+
 	return result, nil
 }
 
