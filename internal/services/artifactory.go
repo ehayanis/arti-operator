@@ -16,7 +16,6 @@ type ArtifactoryService struct {
 	artifactoryClient    *artifactory.Client
 	artifactoryUrl       string
 	clusterDNSSubdomain  string
-	LDAPGroups			 types.LDAPGroups
 }
 
 func NewArtifactoryService(operatorConfig *types.ArtifactoryOperatorConfig, PasswordStoreService *PasswordStoreService) (*ArtifactoryService, error) {
@@ -39,7 +38,6 @@ func NewArtifactoryService(operatorConfig *types.ArtifactoryOperatorConfig, Pass
 		PasswordStoreService: PasswordStoreService,
 		logger:               logger,
 		clusterDNSSubdomain:  operatorConfig.ClusterDNSSubdomain,
-		LDAPGroups:           operatorConfig.LDAPGroups,
 	}
 
 	return result, nil
@@ -133,7 +131,6 @@ func (s *ArtifactoryService) ArtifactoryRepositoryCreate(fields *types.Artifacto
 
 func (s *ArtifactoryService) CreateArtifactoryGroup(fields *types.ArtifactoryInformation) {
 
-	//Create Group function to Source Entity read on project
 	groupName := fields.SourceEntity
 	group := &artifactory.Group{
 		Name:            artifactory.String(groupName),
@@ -142,20 +139,6 @@ func (s *ArtifactoryService) CreateArtifactoryGroup(fields *types.ArtifactoryInf
 		RealmAttributes: artifactory.String(fmt.Sprintf("ldapGroupName=%s", groupName)),
 	}
 
-	s.createArtifactoryGroup(group, groupName)
-
-	//Create Group for Customer OPS
-	customerOPSGroup := &artifactory.Group{
-		Name:            artifactory.String(s.LDAPGroups.CustomerOPS),
-		Description:     artifactory.String("created by Artifactory Operator"),
-		Realm:           artifactory.String("ldap"),
-		RealmAttributes: artifactory.String(fmt.Sprintf("ldapGroupName=%s", s.LDAPGroups.CustomerOPS)),
-	}
-
-	s.createArtifactoryGroup(customerOPSGroup, s.LDAPGroups.CustomerOPS)
-}
-
-func (s *ArtifactoryService) createArtifactoryGroup(group *artifactory.Group, groupName string) {
 	group, resp, err := s.artifactoryClient.Security.GetGroup(context.Background(), groupName)
 
 	if resp.StatusCode == http.StatusNotFound {
@@ -343,7 +326,7 @@ func (s *ArtifactoryService) CreateArtifactoryPermissions(fields *types.Artifact
 
 func (s *ArtifactoryService) createLDAPPermissions(fields *types.ArtifactoryInformation, permissions []string, repositories []string, role string) {
 	permissionEnvName := permissionEnvName(role, fields)
-	group := &map[string][]string{fields.SourceEntity: permissions, s.LDAPGroups.CustomerOPS: permissions}
+	group := &map[string][]string{fields.SourceEntity: permissions}
 	s.createArtifactoryPermissions(permissionEnvName, repositories, nil, group)
 }
 
