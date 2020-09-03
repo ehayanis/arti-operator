@@ -180,6 +180,11 @@ func (s *ArtifactoryService) createArtifactoryUsers(client *artifactory.Client, 
 
 	existingUser, resp, err := client.Security.GetUser(context.Background(), userName)
 
+	if err != nil {
+		s.logger.Error().Msgf("Technical error occured during user creation/update: %s", err.Error())
+		return
+	}
+
 	if resp.StatusCode == http.StatusNotFound {
 		resp, err = client.Security.CreateOrReplaceUser(context.Background(), userName, &user)
 		if err == nil {
