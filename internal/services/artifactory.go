@@ -291,7 +291,13 @@ func (s *ArtifactoryService) createArtifactoryPermissions(permissionName string,
 	}
 
 	existingPermissions, resp, err := s.artifactoryClient.Security.GetPermissionTargets(context.Background(), permissionName)
-	if err != nil && resp == nil {
+
+	if resp == nil && err != nil {
+		s.logger.Error().Msgf("Technical Error occured during GetPermissionTargets reponse is empty and got error : '%s'", err.Error())
+		return
+	}
+
+	if err != nil {
 		s.logger.Error().Msgf("Technical Error occured during permission creation/update: '%s'", err.Error())
 		return
 	}
