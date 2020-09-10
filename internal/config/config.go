@@ -6,6 +6,7 @@ import (
 	"github.com/ca-gip/artifactory-operator/internal/types"
 	"github.com/ca-gip/artifactory-operator/internal/utils"
 	"os"
+	"regexp"
 	"strings"
 )
 
@@ -119,14 +120,29 @@ func LoadConfig() (*types.ArtifactoryOperatorConfig, error) {
 			err := errors.New("LDAP_CUSTOMER_OPS_GROUPBASE is required, but empty.")
 			return nil, err
 		}
+		CustomerOPSGroup, err := extractLDAPCN(customerOPS)
+		if err != nil {
+			return nil, err
+		}
 
-		result.LDAPGroups.CustomerOPS = customerOPS
+		result.LDAPGroups.CustomerOPS = CustomerOPSGroup
 	} else {
 		err := errors.New("LDAP_CUSTOMER_OPS_GROUPBASE is required.")
 		return nil, err
 	}
 
 	return result, nil
+}
+
+func extractLDAPCN(DN string) (string, error) {
+	CN := regexp.MustCompile(`CN=([^,]+)`)
+	cn := CN.FindStringSubmatch(DN)
+
+	if len(cn) < 1 {
+		return "", errors.New(fmt.Sprintf("LDAP CN cannot be extracted from the DN: %s", DN))
+	}
+
+	return strings.ToLower(cn[1]), nil
 }
 
 func validateClusterLocation(location string) (string, error) {
