@@ -17,6 +17,7 @@ spec:
       - scratch
       - staging
       - stable
+
 ```
 
 The operator will :
