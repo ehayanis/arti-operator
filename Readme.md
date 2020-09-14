@@ -32,7 +32,7 @@ The operator will :
 - Go 1.10 minimum (tested with v1.10.4).
 - [Glide](https://github.com/Masterminds/glide).
 - GNU Make.
-- Docker to build the image.
+- Docker to build the image. 
 
 ## Runtime requirements
 - Administrative access to a Kubernetes cluster with [Kubi](https://github.com/ca-gip/kubi) deployed and its Project CRD installed.
