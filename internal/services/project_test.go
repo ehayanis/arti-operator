@@ -19,7 +19,7 @@ func Test_generateArtifactoryFields_EmptyProject(t *testing.T) {
 	}
 	fmt.Println("TOTOTOTOTO")
 
-	service, _ := NewProjectService(&config, nil, nil, nil, nil)
+	service, _ := NewProjectService(&config, nil, nil, nil)
 
 	input := &kubiv1.Project{
 		ObjectMeta: metav1.ObjectMeta{
@@ -46,7 +46,7 @@ func Test_generateArtifactoryFields_TenantDuplicatedInProjectName(t *testing.T) 
 		ClusterLocation: utils.ArtifactoryLocationIntranet,
 	}
 
-	service, _ := NewProjectService(&config, nil, nil, nil, nil)
+	service, _ := NewProjectService(&config, nil, nil, nil)
 
 	input := &kubiv1.Project{
 		ObjectMeta: metav1.ObjectMeta{
@@ -90,7 +90,7 @@ func Test_generateArtifactoryFields_TenantMissing(t *testing.T) {
 		ClusterLocation: utils.ArtifactoryLocationIntranet,
 	}
 
-	service, _ := NewProjectService(&config, nil, nil, nil, nil)
+	service, _ := NewProjectService(&config, nil, nil, nil)
 
 	input := &kubiv1.Project{
 		ObjectMeta: metav1.ObjectMeta{
@@ -116,7 +116,7 @@ func Test_generateArtifactoryFields_CleanProjectName(t *testing.T) {
 		ClusterLocation: utils.ArtifactoryLocationIntranet,
 	}
 
-	service, _ := NewProjectService(&config, nil, nil, nil, nil)
+	service, _ := NewProjectService(&config, nil, nil, nil)
 
 	input := &kubiv1.Project{
 		ObjectMeta: metav1.ObjectMeta{

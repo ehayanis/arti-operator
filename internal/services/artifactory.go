@@ -17,6 +17,12 @@ type ArtifactoryService struct {
 	artifactoryUrl       string
 	clusterDNSSubdomain  string
 	LDAPGroups			 types.LDAPGroups
+	Security             ArtifactorySecurity
+}
+
+type ArtifactorySecurity interface {
+	GetGroup(ctx context.Context, groupName string) (*artifactory.Group, *http.Response, error)
+	CreateOrReplaceGroup(ctx context.Context, groupName string, group *artifactory.Group) (*http.Response, error)
 }
 
 func NewArtifactoryService(operatorConfig *types.ArtifactoryOperatorConfig, PasswordStoreService *PasswordStoreService) (*ArtifactoryService, error) {
@@ -40,6 +46,7 @@ func NewArtifactoryService(operatorConfig *types.ArtifactoryOperatorConfig, Pass
 		logger:               logger,
 		clusterDNSSubdomain:  operatorConfig.ClusterDNSSubdomain,
 		LDAPGroups:           operatorConfig.LDAPGroups,
+		Security:             client.Security,
 	}
 
 	return result, nil
@@ -155,20 +162,22 @@ func (s *ArtifactoryService) CreateArtifactoryGroup(fields *types.ArtifactoryInf
 	s.createArtifactoryGroup(customerOPSGroup, s.LDAPGroups.CustomerOPS)
 }
 
-func (s *ArtifactoryService) createArtifactoryGroup(group *artifactory.Group, groupName string) {
-	group, resp, err := s.artifactoryClient.Security.GetGroup(context.Background(), groupName)
-	s.logger.Debug().Msgf("TEMPORARY DEBUG: display group : %v", group)
-	s.logger.Debug().Msgf("TEMPORARY DEBUG: display err : %v", err)
-	s.logger.Debug().Msgf("TEMPORARY DEBUG: display resp : %v", resp)
+func (s *ArtifactoryService) createArtifactoryGroup(group *artifactory.Group, groupName string) (*http.Response,error) {
+	group, resp, err := s.Security.GetGroup(context.Background(), groupName)
+
+	if err != nil {
+		s.logger.Error().Msgf("Technical error occured when looking at existing group: %v", err)
+		return resp, err
+	}
 
 	if resp.StatusCode == http.StatusNotFound {
 		s.logger.Info().Msgf("Group %v doesn't exist. Will be created", groupName)
-		resp, err = s.artifactoryClient.Security.CreateOrReplaceGroup(context.Background(), groupName, group)
+		resp, err = s.Security.CreateOrReplaceGroup(context.Background(), groupName, group)
+		return resp, err
 	}
 
-	if err != nil {
-		s.logger.Error().Msgf("Technical error occured during replacing group: %v", err)
-	}
+	s.logger.Debug().Msgf("skip replacing group %s, nothing to do", groupName)
+	return resp, err
 }
 
 func (s *ArtifactoryService) createArtifactoryUsers(client *artifactory.Client, userName string, email string, password string) {
@@ -308,7 +317,7 @@ func (s *ArtifactoryService) createArtifactoryPermissions(permissionName string,
 	if resp.StatusCode == http.StatusNotFound {
 		resp, err = s.artifactoryClient.Security.CreateOrReplacePermissionTargets(context.Background(), permissionName, &permissions)
 		if err == nil {
-			s.logger.Info().Msgf("Permission %s created", resp.StatusCode, permissionName)
+			s.logger.Info().Msgf("Permission %s created, status code is %v", permissionName, resp.StatusCode)
 		}
 	} else {
 		repositories := &artifactoryRepositoryNames
@@ -320,7 +329,7 @@ func (s *ArtifactoryService) createArtifactoryPermissions(permissionName string,
 			permissions.Principals.Groups = expectedGroups
 			resp, err = s.artifactoryClient.Security.CreateOrReplacePermissionTargets(context.Background(), permissionName, &permissions)
 			if err == nil {
-				s.logger.Info().Msgf("Permission %s replaced for repository %v", resp.StatusCode, permissionName, *repositories)
+				s.logger.Info().Msgf("Permission %s replaced for repository %v, status code is : %v", permissionName, *repositories, resp.StatusCode)
 			}
 		}
 	}
