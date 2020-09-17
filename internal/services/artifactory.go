@@ -157,6 +157,9 @@ func (s *ArtifactoryService) CreateArtifactoryGroup(fields *types.ArtifactoryInf
 
 func (s *ArtifactoryService) createArtifactoryGroup(group *artifactory.Group, groupName string) {
 	group, resp, err := s.artifactoryClient.Security.GetGroup(context.Background(), groupName)
+	s.logger.Debug().Msgf("TEMPORARY DEBUG: display group : %v", group)
+	s.logger.Debug().Msgf("TEMPORARY DEBUG: display err : %v", err)
+	s.logger.Debug().Msgf("TEMPORARY DEBUG: display resp : %v", resp)
 
 	if resp.StatusCode == http.StatusNotFound {
 		s.logger.Info().Msgf("Group %v doesn't exist. Will be created", groupName)
