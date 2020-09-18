@@ -160,6 +160,16 @@ func (s *ArtifactoryService) CreateArtifactoryGroup(fields *types.ArtifactoryInf
 	}
 
 	s.createArtifactoryGroup(customerOPSGroup, s.LDAPGroups.CustomerOPS)
+
+	//Create Group for Viewer
+	viewerGroup := &artifactory.Group{
+		Name:            artifactory.String(s.LDAPGroups.Viewer),
+		Description:     artifactory.String("created by Artifactory Operator"),
+		Realm:           artifactory.String("ldap"),
+		RealmAttributes: artifactory.String(fmt.Sprintf("ldapGroupName=%s", s.LDAPGroups.Viewer)),
+	}
+
+	s.createArtifactoryGroup(viewerGroup, s.LDAPGroups.Viewer)
 }
 
 func (s *ArtifactoryService) createArtifactoryGroup(group *artifactory.Group, groupName string) (*http.Response,error) {
@@ -366,8 +376,11 @@ func (s *ArtifactoryService) CreateArtifactoryPermissions(fields *types.Artifact
 
 func (s *ArtifactoryService) createLDAPPermissions(fields *types.ArtifactoryInformation, permissions []string, repositories []string, role string) {
 	permissionEnvName := permissionEnvName(role, fields)
-	group := &map[string][]string{fields.SourceEntity: permissions, s.LDAPGroups.CustomerOPS: permissions}
-	s.createArtifactoryPermissions(permissionEnvName, repositories, nil, group)
+	group := map[string][]string{fields.SourceEntity: permissions, s.LDAPGroups.CustomerOPS: permissions}
+	if role == "ro" {
+		group[s.LDAPGroups.Viewer] = permissions
+	}
+	s.createArtifactoryPermissions(permissionEnvName, repositories, nil, &group)
 }
 
 func (s *ArtifactoryService) createServiceAccountPermissions(fields *types.ArtifactoryInformation, users *types.ArtifactoryRepoUsers, permissions []string, repositories []string, role string) {
