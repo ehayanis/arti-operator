@@ -175,6 +175,9 @@ func (s *ArtifactoryService) CreateArtifactoryGroup(fields *types.ArtifactoryInf
 func (s *ArtifactoryService) createArtifactoryGroup(group *artifactory.Group, groupName string) (*http.Response,error) {
 	group, resp, err := s.Security.GetGroup(context.Background(), groupName)
 
+	s.logger.Debug().Msgf("temporary:createArtifactoryGroup resp is : %v ", resp)
+	s.logger.Debug().Msgf("temporary:createArtifactoryGroup err is : %v ", err)
+
 	if err != nil {
 		s.logger.Error().Msgf("Technical error occured when looking at existing group: %v", err)
 		return resp, err
