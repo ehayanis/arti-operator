@@ -172,13 +172,13 @@ func (s *ProjectService) generateArtifactoryFields(project *kubiv1.Project) (*ty
 
 	projectNameWithoutTenant := strings.TrimPrefix(project.Spec.Project, project.Spec.Tenant+"-")
 	fieldsArtifactory := &types.ArtifactoryInformation{
-		Tenant:       project.Spec.Tenant,
-		ProjectName:  projectNameWithoutTenant,
-		Stages:       project.Spec.Stages,
-		Location:     s.clusterLocation,
-		Description:  utils.ArtifactoryDescription,
-		Environment:  project.Spec.Environment,
-		SourceEntity: project.Spec.SourceEntity,
+		Tenant:      project.Spec.Tenant,
+		ProjectName: projectNameWithoutTenant,
+		Stages:      project.Spec.Stages,
+		Location:    s.clusterLocation,
+		Description: utils.ArtifactoryDescription,
+		Environment: project.Spec.Environment,
+		SourceDN:    project.Spec.SourceDN,
 	}
 
 	return fieldsArtifactory, nil
