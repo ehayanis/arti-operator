@@ -99,7 +99,6 @@ func WatchProjects(operatorConfig *types.ArtifactoryOperatorConfig) cache.Store 
 
 func projectUpdate(new interface{}, projectService *services.ProjectService) {
 	newProject := new.(*v1.Project)
-
 	err := utils.CheckMandatoryParameters(newProject)
 	if err != nil {
 		utils.Log.Error().Msgf("Error, project resource does not have mandatory parameter to fill Artifactory: %v", err)
@@ -111,7 +110,6 @@ func projectUpdate(new interface{}, projectService *services.ProjectService) {
 
 func projectCreated(obj interface{}, projectService *services.ProjectService) {
 	project := obj.(*v1.Project)
-
 	err := utils.CheckMandatoryParameters(project)
 	if err != nil {
 		utils.Log.Error().Msgf("Error, project resource does not have mandatory parameter to fill Artifactory: %v", err)

@@ -26,7 +26,8 @@ release:
 	docker push "$(DOCKER_REPO)/$(IMAGE):$(TAG)"
 
 dep:
-	glide install
+	go mod download
+	go mod tidy
 
 test:
 	go test ./... -v

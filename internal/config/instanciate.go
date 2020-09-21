@@ -4,25 +4,25 @@ import (
 	"fmt"
 	"github.com/ca-gip/artifactory-operator/internal/services"
 	"github.com/ca-gip/artifactory-operator/internal/types"
-	"github.com/ca-gip/artifactory-operator/internal/utils"
-	"github.com/ca-gip/kubi/pkg/client/clientset/versioned"
+	"github.com/ca-gip/kubi/pkg/generated/clientset/versioned"
 	"github.com/rs/zerolog"
 	"k8s.io/client-go/rest"
 	"os"
 )
 
 func InstanciateKubernetesClients() (*rest.Config, *versioned.Clientset) {
-	kconfig, err := utils.GetClientConfig()
+	kconf, err := rest.InClusterConfig()
 	if err != nil {
 		fmt.Println("Couldn't load K8S client config:", err)
 		os.Exit(1)
 	}
-	v3, err := versioned.NewForConfig(kconfig)
+
+	v3, err := versioned.NewForConfig(kconf)
 	if err != nil {
 		fmt.Println("Couldn't create Kubi client:", err)
 		os.Exit(1)
 	}
-	return kconfig, v3
+	return kconf, v3
 }
 
 func InstanciateServices(kconfig *rest.Config, operatorConfig *types.ArtifactoryOperatorConfig, logger zerolog.Logger) *services.ProjectService {

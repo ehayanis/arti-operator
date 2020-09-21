@@ -1,5 +1,4 @@
 FROM golang:latest as build
-RUN curl https://glide.sh/get | sh && glide --version
 WORKDIR $GOPATH/src/github.com/ca-gip/artifactory-operator
 COPY . $GOPATH/src/github.com/ca-gip/artifactory-operator
 RUN make dep
