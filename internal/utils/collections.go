@@ -1,12 +1,5 @@
 package utils
 
-import (
-	"errors"
-	"fmt"
-	"regexp"
-	"strings"
-)
-
 // Index returns the first index of the target string `t`, or
 // -1 if no match is found.
 func Index(vs []string, t string) int {
@@ -153,15 +146,4 @@ func MapConcat(a, b *map[string][]string) *map[string][]string {
 		}
 	}
 	return &result
-}
-
-func ExtractLDAPCN(DN string) (string, error) {
-	CN := regexp.MustCompile(`CN=([^,]+)`)
-	cn := CN.FindStringSubmatch(DN)
-
-	if len(cn) < 1 {
-		return "", errors.New(fmt.Sprintf("LDAP CN cannot be extracted from the DN: %s", DN))
-	}
-
-	return strings.ToLower(cn[1]), nil
 }
