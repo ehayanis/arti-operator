@@ -8,6 +8,7 @@ import (
 	"github.com/ca-gip/artifactory-operator/internal/utils"
 	"github.com/rs/zerolog"
 	"net/http"
+	"strings"
 )
 
 type ArtifactoryService struct {
@@ -141,37 +142,38 @@ func (s *ArtifactoryService) ArtifactoryRepositoryCreate(fields *types.Artifacto
 func (s *ArtifactoryService) CreateArtifactoryGroup(fields *types.ArtifactoryInformation) {
 
 	//Create Group function to Source Entity read on project
-	groupName := fields.SourceEntity
-	group := &artifactory.Group{
+	projectGroupCN, err := utils.ExtractLDAPCN(fields.SourceDN)
+	if err != nil{
+		s.logger.Error().Msgf("Unable to retrieve CN from group : %v",fields.SourceDN)
+	}
+	s.createArtifactoryGroup(computeLDAPGroup(projectGroupCN,fields.SourceDN), projectGroupCN)
+
+	//Create Group for Customer OPS
+	customerOPSCN, err := utils.ExtractLDAPCN(s.LDAPGroups.CustomerOPS)
+	if err != nil{
+		s.logger.Error().Msgf("Unable to retrieve CN from group : %v",s.LDAPGroups.CustomerOPS)
+	}
+	s.createArtifactoryGroup(computeLDAPGroup(customerOPSCN,s.LDAPGroups.CustomerOPS), customerOPSCN)
+
+	//Create Group for Viewer
+	viewerCN, err := utils.ExtractLDAPCN(s.LDAPGroups.Viewer)
+	if err != nil{
+		s.logger.Error().Msgf("Unable to retrieve CN from group : %v",s.LDAPGroups.Viewer)
+	}
+	s.createArtifactoryGroup(computeLDAPGroup(viewerCN,s.LDAPGroups.Viewer), viewerCN)
+}
+
+func computeLDAPGroup(groupName, DN string ) *artifactory.Group {
+
+	realmAttribute := fmt.Sprintf("ldapGroupName=%s;groupsStrategy=STATIC;groupDn=%s", strings.ToUpper(groupName), DN)
+
+	return &artifactory.Group{
 		Name:            artifactory.String(groupName),
 		Description:     artifactory.String("created by Artifactory Operator"),
 		Realm:           artifactory.String("ldap"),
-		RealmAttributes: artifactory.String(fmt.Sprintf("ldapGroupName=%s", groupName)),
+		RealmAttributes: artifactory.String(realmAttribute),
 	}
-
-	s.createArtifactoryGroup(group, groupName)
-
-	//Create Group for Customer OPS
-	customerOPSGroup := &artifactory.Group{
-		Name:            artifactory.String(s.LDAPGroups.CustomerOPS),
-		Description:     artifactory.String("created by Artifactory Operator"),
-		Realm:           artifactory.String("ldap"),
-		RealmAttributes: artifactory.String(fmt.Sprintf("ldapGroupName=%s", s.LDAPGroups.CustomerOPS)),
-	}
-
-	s.createArtifactoryGroup(customerOPSGroup, s.LDAPGroups.CustomerOPS)
-
-	//Create Group for Viewer
-	viewerGroup := &artifactory.Group{
-		Name:            artifactory.String(s.LDAPGroups.Viewer),
-		Description:     artifactory.String("created by Artifactory Operator"),
-		Realm:           artifactory.String("ldap"),
-		RealmAttributes: artifactory.String(fmt.Sprintf("ldapGroupName=%s", s.LDAPGroups.Viewer)),
-	}
-
-	s.createArtifactoryGroup(viewerGroup, s.LDAPGroups.Viewer)
 }
-
 func (s *ArtifactoryService) createArtifactoryGroup(group *artifactory.Group, groupName string) (*http.Response, error) {
 	group, resp, err := s.Security.GetGroup(context.Background(), groupName)
 
@@ -379,9 +381,13 @@ func (s *ArtifactoryService) CreateArtifactoryPermissions(fields *types.Artifact
 
 func (s *ArtifactoryService) createLDAPPermissions(fields *types.ArtifactoryInformation, permissions []string, repositories []string, role string) {
 	permissionEnvName := permissionEnvName(role, fields)
-	group := map[string][]string{fields.SourceEntity: permissions, s.LDAPGroups.CustomerOPS: permissions}
+	groupName, _ := utils.ExtractLDAPCN(fields.SourceDN)
+	customerOPSGroupName, _ := utils.ExtractLDAPCN(s.LDAPGroups.CustomerOPS)
+	viewerGroupName, _ := utils.ExtractLDAPCN(s.LDAPGroups.Viewer)
+
+	group := map[string][]string{groupName: permissions, customerOPSGroupName: permissions}
 	if role == "ro" {
-		group[s.LDAPGroups.Viewer] = permissions
+		group[viewerGroupName] = permissions
 	}
 	s.createArtifactoryPermissions(permissionEnvName, repositories, nil, &group)
 }
