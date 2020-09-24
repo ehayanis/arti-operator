@@ -189,6 +189,27 @@ func TestCreateArtifactoryGroup(t *testing.T) {
 		//Assert
 		assert.Equal(t, expectedResp.StatusCode, resp.StatusCode)
 	})
+
+	t.Run("ldap group should be formatted correctly", func(t *testing.T){
+		//Prepare
+		expectedGroup := &artifactory.Group{
+			Name:            artifactory.String("dl_container_cagip_hp_cloudops-development_admin"),
+			Description:     artifactory.String("created by Artifactory Operator"),
+			Realm:           artifactory.String("ldap"),
+			RealmAttributes: artifactory.String("ldapGroupName=DL_CONTAINER_CAGIP_HP_CLOUDOPS-DEVELOPMENT_ADMIN;groupsStrategy=STATIC;groupDn=CN=DL_CONTAINER_CAGIP_HP_CLOUDOPS-DEVELOPMENT_ADMIN,OU=HORS-PROD,OU=CAGIP,OU=PAAS_CONTAINER,OU=Applications,OU=Groupes,O=CA"),
+		}
+
+		DN := "CN=DL_CONTAINER_CAGIP_HP_CLOUDOPS-DEVELOPMENT_ADMIN,OU=HORS-PROD,OU=CAGIP,OU=PAAS_CONTAINER,OU=Applications,OU=Groupes,O=CA"
+
+		//test
+		cn, _ := utils.ExtractLDAPCN(DN)
+		group := computeLDAPGroup(cn,DN)
+
+		//assert
+		assert.Equal(t,expectedGroup,group)
+
+	})
+
 }
 
 func TestPermissionNameRO(t *testing.T) {
