@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/ca-gip/artifactory-operator/internal/services"
 	"github.com/ca-gip/artifactory-operator/internal/types"
+	"github.com/ca-gip/artifactory-operator/internal/utils"
 	"github.com/ca-gip/kubi/pkg/generated/clientset/versioned"
 	"github.com/rs/zerolog"
 	"k8s.io/client-go/rest"
@@ -11,7 +12,7 @@ import (
 )
 
 func InstanciateKubernetesClients() (*rest.Config, *versioned.Clientset) {
-	kconf, err := rest.InClusterConfig()
+	kconf, err := utils.GetClientConfig()
 	if err != nil {
 		fmt.Println("Couldn't load K8S client config:", err)
 		os.Exit(1)

@@ -8,6 +8,7 @@ import (
 	"github.com/ca-gip/artifactory-operator/internal/utils"
 	"github.com/rs/zerolog"
 	"net/http"
+	"reflect"
 	"strings"
 )
 
@@ -170,23 +171,29 @@ func computeLDAPGroup(groupName, DN string ) *artifactory.Group {
 	return &artifactory.Group{
 		Name:            artifactory.String(groupName),
 		Description:     artifactory.String("created by Artifactory Operator"),
+		AutoJoin:        artifactory.Bool(false),
+		AdminPrivileges: artifactory.Bool(false),
 		Realm:           artifactory.String("ldap"),
 		RealmAttributes: artifactory.String(realmAttribute),
 	}
 }
 func (s *ArtifactoryService) createArtifactoryGroup(group *artifactory.Group, groupName string) (*http.Response, error) {
-	group, resp, err := s.Security.GetGroup(context.Background(), groupName)
+	existingGroup, resp, err := s.Security.GetGroup(context.Background(), groupName)
+
+	if reflect.DeepEqual(existingGroup,group) {
+		return resp, err
+	}
 
 	s.logger.Debug().Msgf("temporary:createArtifactoryGroup resp is : %v ", resp)
 	s.logger.Debug().Msgf("temporary:createArtifactoryGroup err is : %v ", err)
 
-	if err != nil && resp == nil {
-		s.logger.Error().Msgf("Technical error occured when looking at existing group: %v", err)
+	if utils.HasANon404Error(err,resp) {
 		return resp, err
 	}
 
 	if resp.StatusCode == http.StatusNotFound {
-		s.logger.Info().Msgf("Group %v doesn't exist. Will be created", groupName)
+		s.logger.Info().Msgf("Group %v doesn't exist. Will be created, realm attributes is: %v", groupName, group.RealmAttributes)
+		s.logger.Info().Msgf("Group %v doesn't exist. Will be created", group)
 		resp, err = s.Security.CreateOrReplaceGroup(context.Background(), groupName, group)
 		return resp, err
 	}
@@ -207,7 +214,7 @@ func (s *ArtifactoryService) createArtifactoryUsers(client *artifactory.Client, 
 
 	existingUser, resp, err := client.Security.GetUser(context.Background(), userName)
 
-	if err != nil {
+	if err != nil && (resp == nil || resp.StatusCode != http.StatusNotFound) {
 		s.logger.Error().Msgf("Technical error occured during user creation/update: %s", err.Error())
 		return
 	}
@@ -319,13 +326,8 @@ func (s *ArtifactoryService) createArtifactoryPermissions(permissionName string,
 
 	existingPermissions, resp, err := s.artifactoryClient.Security.GetPermissionTargets(context.Background(), permissionName)
 
-	if resp == nil && err != nil {
+	if err != nil && (resp == nil || resp.StatusCode != http.StatusNotFound ) {
 		s.logger.Error().Msgf("Technical Error occured during GetPermissionTargets reponse is empty and got error : '%s'", err.Error())
-		return
-	}
-
-	if err != nil {
-		s.logger.Error().Msgf("Technical Error occured during permission creation/update: '%s'", err.Error())
 		return
 	}
 
