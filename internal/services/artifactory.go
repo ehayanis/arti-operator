@@ -91,13 +91,13 @@ func stageInFields(stage string, fields *types.ArtifactoryInformation) bool {
 }
 
 func (s *ArtifactoryService) ArtifactoryRepositoryCreate(fields *types.ArtifactoryInformation) ([]string, error) {
-	result := []string{}
+	repositoryNames := []string{}
 
 	for _, stage := range fields.Stages {
 		artifactoryRepositoryName := artifactoryRepositoryKey(fields, stage)
 
 		if stageInFields(stage, fields) {
-			result = append(result, artifactoryRepositoryName)
+			repositoryNames = append(repositoryNames, artifactoryRepositoryName)
 		}
 
 		repo := artifactory.LocalRepository{
@@ -108,36 +108,54 @@ func (s *ArtifactoryService) ArtifactoryRepositoryCreate(fields *types.Artifacto
 			Description:     artifactory.String(fields.Description),
 		}
 
-		existingRepo, response, err := s.artifactoryClient.Repositories.GetLocal(context.Background(), artifactoryRepositoryName)
-		//AUG: Attention, l'API Artifactory renvoie un 400 bad request si la ressource n'existe pas.
+		err := s.repositoryCreateOrUpdateIfItDoesNotExists(artifactoryRepositoryName, repo)
 		if err != nil {
-			resp, err := s.artifactoryClient.Repositories.CreateLocal(context.Background(), &repo)
-			if err != nil {
-				s.logger.Error().Msgf("Could not create artifactory repo %v: %v", artifactoryRepositoryName, err)
-				return result, err
-			} else if resp.StatusCode == http.StatusOK {
-				s.logger.Info().Msgf("Creation of Repository %s successful.", artifactoryRepositoryName)
-				continue
-			}
-		} else if response.StatusCode != http.StatusNotFound && existingRepo != nil {
-			if *repo.Description == *existingRepo.Description && *repo.HandleSnapshots == *existingRepo.HandleSnapshots && *repo.PackageType == *existingRepo.PackageType && *repo.RClass == *existingRepo.RClass {
-				s.logger.Debug().Msgf("Update not necessary, skipping the repository %v", artifactoryRepositoryName)
-				continue
-			}
+			return repositoryNames, err
+		}
+	}
 
+	sharedRepoName := fmt.Sprintf("docker-stable-intranet-%s-shared", fields.Tenant)
+	sharedRepo := artifactory.LocalRepository{
+		Key:             artifactory.String(sharedRepoName),
+		RClass:          artifactory.String("local"),
+		PackageType:     artifactory.String("docker"),
+		HandleSnapshots: artifactory.Bool(false),
+		Description:     artifactory.String(fields.Description),
+	}
+
+	err := s.repositoryCreateOrUpdateIfItDoesNotExists(sharedRepoName, sharedRepo)
+	if err != nil {
+		return repositoryNames, err
+	}
+
+	return repositoryNames, nil
+}
+
+func (s *ArtifactoryService) repositoryCreateOrUpdateIfItDoesNotExists(artifactoryRepositoryName string, repo artifactory.LocalRepository) (error) {
+	existingRepo, response, err := s.artifactoryClient.Repositories.GetLocal(context.Background(), artifactoryRepositoryName)
+	//AUG: Attention, l'API Artifactory renvoie un 400 bad request si la ressource n'existe pas.
+	if err != nil {
+		resp, err := s.artifactoryClient.Repositories.CreateLocal(context.Background(), &repo)
+		if err != nil {
+			s.logger.Error().Msgf("Could not create artifactory repo %v: %v", artifactoryRepositoryName, err)
+			return err
+		} else if resp.StatusCode == http.StatusOK {
+			s.logger.Info().Msgf("Creation of Repository %s successful.", artifactoryRepositoryName)
+		}
+	} else if response.StatusCode != http.StatusNotFound && existingRepo != nil {
+		if *repo.Description == *existingRepo.Description && *repo.HandleSnapshots == *existingRepo.HandleSnapshots && *repo.PackageType == *existingRepo.PackageType && *repo.RClass == *existingRepo.RClass {
+			s.logger.Debug().Msgf("Update not necessary, skipping the repository %v", artifactoryRepositoryName)
+		} else {
 			resp, err := s.artifactoryClient.Repositories.UpdateLocal(context.Background(), artifactoryRepositoryName, &repo)
 			if err != nil {
 				s.logger.Error().Msgf("Could not update artifactory repo %v: %v", artifactoryRepositoryName, err)
-				return result, err
+				return err
 			} else if resp.StatusCode == http.StatusOK {
 				s.logger.Info().Msgf("Update of Repository %s successful.", artifactoryRepositoryName)
-				continue
 			}
 		}
-
 	}
-
-	return result, nil
+	return nil
 }
 
 func (s *ArtifactoryService) CreateArtifactoryGroup(fields *types.ArtifactoryInformation) {
