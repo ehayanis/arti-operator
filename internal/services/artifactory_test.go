@@ -162,7 +162,7 @@ func prepareArtifactoryServiceForSecurityTests(fakeError bool, groupNotFound boo
 			artifactoryUrl:      "https://dummy-arti.example.fr",
 			clusterDNSSubdomain: "devops-test",
 			Security:            NewMockArtifactorySecurityWithErrorAndNotFound(),
-			SkipSharedRepository: "true",
+			SharedRepository:    "true",
 		}
 	}
 
@@ -173,7 +173,7 @@ func prepareArtifactoryServiceForSecurityTests(fakeError bool, groupNotFound boo
 			artifactoryUrl:      "https://dummy-arti.example.fr",
 			clusterDNSSubdomain: "devops-test",
 			Security:            NewMockArtifactorySecurityWithError(),
-			SkipSharedRepository: "true",
+			SharedRepository:    "true",
 		}
 	}
 
@@ -184,7 +184,7 @@ func prepareArtifactoryServiceForSecurityTests(fakeError bool, groupNotFound boo
 			artifactoryUrl:      "https://dummy-arti.example.fr",
 			clusterDNSSubdomain: "devops-test",
 			Security:            NewMockArtifactorySecurityWithStatusNotFound(),
-			SkipSharedRepository: "true",
+			SharedRepository:    "true",
 		}
 	}
 
@@ -194,7 +194,7 @@ func prepareArtifactoryServiceForSecurityTests(fakeError bool, groupNotFound boo
 		artifactoryUrl:      "https://dummy-arti.example.fr",
 		clusterDNSSubdomain: "devops-test",
 		Security:            NewMockArtifactorySecurityWithoutError(),
-		SkipSharedRepository: "true",
+		SharedRepository:    "true",
 	}
 }
 
@@ -207,7 +207,7 @@ func prepareArtifactoryServiceForRepositoryTests(fakeError bool, repoNotFound bo
 			artifactoryUrl:      "https://dummy-arti.example.fr",
 			clusterDNSSubdomain: "devops-test",
 			Repository:          NewMockArtifactoryRepositoryWithErrorAndNotFound(),
-			SkipSharedRepository: "true",
+			SharedRepository:    "true",
 		}
 	}
 
@@ -218,7 +218,7 @@ func prepareArtifactoryServiceForRepositoryTests(fakeError bool, repoNotFound bo
 			artifactoryUrl:      "https://dummy-arti.example.fr",
 			clusterDNSSubdomain: "devops-test",
 			Repository:          NewMockArtifactoryRepositoryWithError(),
-			SkipSharedRepository: "true",
+			SharedRepository:    "true",
 		}
 	}
 
@@ -229,7 +229,7 @@ func prepareArtifactoryServiceForRepositoryTests(fakeError bool, repoNotFound bo
 			artifactoryUrl:      "https://dummy-arti.example.fr",
 			clusterDNSSubdomain: "devops-test",
 			Repository:          NewMockArtifactoryRepositoryWithStatusNotFound(),
-			SkipSharedRepository: "true",
+			SharedRepository:    "true",
 		}
 	}
 
@@ -239,7 +239,7 @@ func prepareArtifactoryServiceForRepositoryTests(fakeError bool, repoNotFound bo
 		artifactoryUrl:      "https://dummy-arti.example.fr",
 		clusterDNSSubdomain: "devops-test",
 		Repository:          NewMockArtifactoryRepositoryWithoutError(),
-		SkipSharedRepository: "true",
+		SharedRepository:    "true",
 	}
 }
 
@@ -263,7 +263,7 @@ func TestCreateArtifactoryRepository(t *testing.T) {
 			expectedRepositoryNames := []string{"caaa-superbanque-docker-scratch-intranet",
 				"caaa-superbanque-docker-staging-intranet",
 				"caaa-superbanque-docker-stable-intranet",
-				"docker-stable-intranet-caaa-shared"}
+				"caaa-shared-docker-stable-intranet"}
 
 			//Test
 			repos, err := artifactoryService.ArtifactoryRepositoryCreate(artifactoryFields)

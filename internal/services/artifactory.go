@@ -21,7 +21,7 @@ type ArtifactoryService struct {
 	LDAPGroups           types.LDAPGroups
 	Security             ArtifactorySecurity
 	Repository           ArtifactoryRepository
-	SkipSharedRepository string
+	SharedRepository     string
 }
 
 type ArtifactorySecurity interface {
@@ -58,7 +58,7 @@ func NewArtifactoryService(operatorConfig *types.ArtifactoryOperatorConfig, Pass
 		LDAPGroups:           operatorConfig.LDAPGroups,
 		Security:             client.Security,
 		Repository:           client.Repositories,
-		SkipSharedRepository: operatorConfig.SkipSharedRepository,
+		SharedRepository:     operatorConfig.SharedRepository,
 	}
 
 	return result, nil
@@ -124,8 +124,8 @@ func (s *ArtifactoryService) ArtifactoryRepositoryCreate(fields *types.Artifacto
 		}
 	}
 
-	if s.SkipSharedRepository == "true" {
-		sharedRepoName := fmt.Sprintf("docker-stable-intranet-%s-shared", fields.Tenant)
+	if s.SharedRepository == "true" {
+		sharedRepoName := fmt.Sprintf("%s-shared-docker-stable-%s", fields.Tenant, fields.Location)
 		repositoryNames = append(repositoryNames, sharedRepoName)
 		sharedRepo := artifactory.LocalRepository{
 			Key:             artifactory.String(sharedRepoName),
@@ -395,8 +395,8 @@ func (s *ArtifactoryService) CreateArtifactoryPermissions(fields *types.Artifact
 	readOnlyRepositories := []string{}
 	readWriteRepositories := []string{}
 
-	if s.SkipSharedRepository == "true" {
-		sharedRepoName := fmt.Sprintf("docker-stable-intranet-%s-shared", fields.Tenant)
+	if s.SharedRepository == "true" {
+		sharedRepoName := fmt.Sprintf("%s-shared-docker-stable-%s", fields.Tenant, fields.Location)
 		readOnlyRepositories = append(readOnlyRepositories, sharedRepoName)
 	}
 

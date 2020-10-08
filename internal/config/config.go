@@ -139,14 +139,14 @@ func LoadConfig() (*types.ArtifactoryOperatorConfig, error) {
 		return nil, err
 	}
 
-	skipShareRepository, ok := os.LookupEnv("SKIP_SHARED_REPOSITORY")
+	ShareRepository, ok := os.LookupEnv("SHARED_REPOSITORY")
 	if ok {
-		if strings.TrimSpace(skipShareRepository) == "" {
+		if strings.TrimSpace(ShareRepository) == "" {
 			err := errors.New("SKIP_SHARED_REPOSITORY (bool) is required, but empty.")
 			return nil, err
 		}
 
-		result.SkipSharedRepository = skipShareRepository
+		result.SharedRepository = ShareRepository
 	} else {
 		err := errors.New("SKIP_SHARED_REPOSITORY is required.")
 		return nil, err

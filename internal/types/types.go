@@ -46,7 +46,7 @@ type ArtifactoryOperatorConfig struct {
 	VaultServerUrl                string
 	ClusterDNSSubdomain           string
 	LDAPGroups                    LDAPGroups
-	SkipSharedRepository          string
+	SharedRepository              string
 }
 
 type LDAPGroups struct {
