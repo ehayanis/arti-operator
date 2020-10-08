@@ -20,11 +20,19 @@ type ArtifactoryService struct {
 	clusterDNSSubdomain  string
 	LDAPGroups           types.LDAPGroups
 	Security             ArtifactorySecurity
+	Repository           ArtifactoryRepository
+	SharedRepository     string
 }
 
 type ArtifactorySecurity interface {
 	GetGroup(ctx context.Context, groupName string) (*artifactory.Group, *http.Response, error)
 	CreateOrReplaceGroup(ctx context.Context, groupName string, group *artifactory.Group) (*http.Response, error)
+}
+
+type ArtifactoryRepository interface{
+	GetLocal(ctx context.Context, repo string) (*artifactory.LocalRepository, *http.Response, error)
+	CreateLocal(ctx context.Context, repo *artifactory.LocalRepository) (*http.Response, error)
+	UpdateLocal(ctx context.Context, repo string, repository *artifactory.LocalRepository) (*http.Response, error)
 }
 
 func NewArtifactoryService(operatorConfig *types.ArtifactoryOperatorConfig, PasswordStoreService *PasswordStoreService) (*ArtifactoryService, error) {
@@ -49,6 +57,8 @@ func NewArtifactoryService(operatorConfig *types.ArtifactoryOperatorConfig, Pass
 		clusterDNSSubdomain:  operatorConfig.ClusterDNSSubdomain,
 		LDAPGroups:           operatorConfig.LDAPGroups,
 		Security:             client.Security,
+		Repository:           client.Repositories,
+		SharedRepository:     operatorConfig.SharedRepository,
 	}
 
 	return result, nil
@@ -91,13 +101,13 @@ func stageInFields(stage string, fields *types.ArtifactoryInformation) bool {
 }
 
 func (s *ArtifactoryService) ArtifactoryRepositoryCreate(fields *types.ArtifactoryInformation) ([]string, error) {
-	result := []string{}
+	repositoryNames := []string{}
 
 	for _, stage := range fields.Stages {
 		artifactoryRepositoryName := artifactoryRepositoryKey(fields, stage)
 
 		if stageInFields(stage, fields) {
-			result = append(result, artifactoryRepositoryName)
+			repositoryNames = append(repositoryNames, artifactoryRepositoryName)
 		}
 
 		repo := artifactory.LocalRepository{
@@ -108,36 +118,60 @@ func (s *ArtifactoryService) ArtifactoryRepositoryCreate(fields *types.Artifacto
 			Description:     artifactory.String(fields.Description),
 		}
 
-		existingRepo, response, err := s.artifactoryClient.Repositories.GetLocal(context.Background(), artifactoryRepositoryName)
-		//AUG: Attention, l'API Artifactory renvoie un 400 bad request si la ressource n'existe pas.
+		_, err := s.repositoryCreateOrUpdateIfItDoesNotExists(artifactoryRepositoryName, repo)
 		if err != nil {
-			resp, err := s.artifactoryClient.Repositories.CreateLocal(context.Background(), &repo)
-			if err != nil {
-				s.logger.Error().Msgf("Could not create artifactory repo %v: %v", artifactoryRepositoryName, err)
-				return result, err
-			} else if resp.StatusCode == http.StatusOK {
-				s.logger.Info().Msgf("Creation of Repository %s successful.", artifactoryRepositoryName)
-				continue
-			}
-		} else if response.StatusCode != http.StatusNotFound && existingRepo != nil {
-			if *repo.Description == *existingRepo.Description && *repo.HandleSnapshots == *existingRepo.HandleSnapshots && *repo.PackageType == *existingRepo.PackageType && *repo.RClass == *existingRepo.RClass {
-				s.logger.Debug().Msgf("Update not necessary, skipping the repository %v", artifactoryRepositoryName)
-				continue
-			}
-
-			resp, err := s.artifactoryClient.Repositories.UpdateLocal(context.Background(), artifactoryRepositoryName, &repo)
-			if err != nil {
-				s.logger.Error().Msgf("Could not update artifactory repo %v: %v", artifactoryRepositoryName, err)
-				return result, err
-			} else if resp.StatusCode == http.StatusOK {
-				s.logger.Info().Msgf("Update of Repository %s successful.", artifactoryRepositoryName)
-				continue
-			}
+			return repositoryNames, err
 		}
-
 	}
 
-	return result, nil
+	if s.SharedRepository == "true" {
+		sharedRepoName := fmt.Sprintf("%s-shared-docker-stable-%s", fields.Tenant, fields.Location)
+		repositoryNames = append(repositoryNames, sharedRepoName)
+		sharedRepo := artifactory.LocalRepository{
+			Key:             artifactory.String(sharedRepoName),
+			RClass:          artifactory.String("local"),
+			PackageType:     artifactory.String("docker"),
+			HandleSnapshots: artifactory.Bool(false),
+			Description:     artifactory.String(fields.Description),
+		}
+
+		_, err := s.repositoryCreateOrUpdateIfItDoesNotExists(sharedRepoName, sharedRepo)
+		if err != nil {
+			return repositoryNames, err
+		}
+	}
+
+	return repositoryNames, nil
+}
+
+func (s *ArtifactoryService) repositoryCreateOrUpdateIfItDoesNotExists(artifactoryRepositoryName string, repo artifactory.LocalRepository) (string, error) {
+	existingRepo, response, err := s.Repository.GetLocal(context.Background(), artifactoryRepositoryName)
+	//AUG: Attention, l'API Artifactory renvoie un 400 bad request si la ressource n'existe pas.
+	if err != nil {
+		resp, err := s.Repository.CreateLocal(context.Background(), &repo)
+		if err != nil {
+			s.logger.Error().Msgf("Could not create artifactory repo %v: %v", artifactoryRepositoryName, err)
+			return "", err
+		} else if resp.StatusCode == http.StatusOK {
+			s.logger.Info().Msgf("Creation of Repository %s successful.", artifactoryRepositoryName)
+			return "created", nil
+		}
+	} else if response.StatusCode != http.StatusNotFound && existingRepo != nil {
+		if *repo.Description == *existingRepo.Description && *repo.HandleSnapshots == *existingRepo.HandleSnapshots && *repo.PackageType == *existingRepo.PackageType && *repo.RClass == *existingRepo.RClass {
+			s.logger.Debug().Msgf("Update not necessary, skipping the repository %v", artifactoryRepositoryName)
+			return "existing", nil
+		} else {
+			resp, err := s.Repository.UpdateLocal(context.Background(), artifactoryRepositoryName, &repo)
+			if err != nil {
+				s.logger.Error().Msgf("Could not update artifactory repo %v: %v", artifactoryRepositoryName, err)
+				return "", err
+			} else if resp.StatusCode == http.StatusOK {
+				s.logger.Info().Msgf("Update of Repository %s successful.", artifactoryRepositoryName)
+				return "updated", nil
+			}
+		}
+	}
+	return "unknown", nil
 }
 
 func (s *ArtifactoryService) CreateArtifactoryGroup(fields *types.ArtifactoryInformation) {
@@ -360,6 +394,11 @@ func (s *ArtifactoryService) createArtifactoryPermissions(permissionName string,
 func (s *ArtifactoryService) CreateArtifactoryPermissions(fields *types.ArtifactoryInformation, users *types.ArtifactoryRepoUsers) {
 	readOnlyRepositories := []string{}
 	readWriteRepositories := []string{}
+
+	if s.SharedRepository == "true" {
+		sharedRepoName := fmt.Sprintf("%s-shared-docker-stable-%s", fields.Tenant, fields.Location)
+		readOnlyRepositories = append(readOnlyRepositories, sharedRepoName)
+	}
 
 	for _, stage := range fields.Stages {
 		if stage == utils.ArtifactoryStageScratch || stage == utils.ArtifactoryStageStaging {
