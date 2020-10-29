@@ -183,6 +183,14 @@ func (s *ArtifactoryService) CreateArtifactoryGroup(fields *types.ArtifactoryInf
 	}
 	s.createArtifactoryGroup(computeLDAPGroup(projectGroupCN,fields.SourceDN), projectGroupCN)
 
+	//Create Group for App OPS
+	AppOPSCN, err := utils.ExtractLDAPCN(s.LDAPGroups.AppOPS)
+	if err != nil{
+		s.logger.Error().Msgf("Unable to retrieve CN from group : %v",s.LDAPGroups.AppOPS)
+	}
+	s.createArtifactoryGroup(computeLDAPGroup(AppOPSCN,s.LDAPGroups.AppOPS), AppOPSCN)
+
+
 	//Create Group for Customer OPS
 	customerOPSCN, err := utils.ExtractLDAPCN(s.LDAPGroups.CustomerOPS)
 	if err != nil{
@@ -423,10 +431,11 @@ func (s *ArtifactoryService) CreateArtifactoryPermissions(fields *types.Artifact
 func (s *ArtifactoryService) createLDAPPermissions(fields *types.ArtifactoryInformation, permissions []string, repositories []string, role string) {
 	permissionEnvName := permissionEnvName(role, fields)
 	groupName, _ := utils.ExtractLDAPCN(fields.SourceDN)
+	appOPSGroupName, _ := utils.ExtractLDAPCN(s.LDAPGroups.AppOPS)
 	customerOPSGroupName, _ := utils.ExtractLDAPCN(s.LDAPGroups.CustomerOPS)
 	viewerGroupName, _ := utils.ExtractLDAPCN(s.LDAPGroups.Viewer)
 
-	group := map[string][]string{groupName: permissions, customerOPSGroupName: permissions}
+	group := map[string][]string{groupName: permissions, customerOPSGroupName: permissions, appOPSGroupName: permissions}
 	if role == "ro" {
 		group[viewerGroupName] = permissions
 	}

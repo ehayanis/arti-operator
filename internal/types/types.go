@@ -50,6 +50,7 @@ type ArtifactoryOperatorConfig struct {
 }
 
 type LDAPGroups struct {
+	AppOPS      string
 	CustomerOPS string
 	Viewer      string
 }
