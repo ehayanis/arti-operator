@@ -157,3 +157,7 @@ Scenario that causes this:
   - Maybe retry the whole event handling itself.
   - Retry the dockerconfigsecret creation, might fail if the customer Namespace isn't created quickly enough.
   - Retry Artifactory operations if Artifactory is unavailable.
+
+### Flowchart diagram
+
+![Artifactory-operator](doc/Artifactory-Operator.png)
