@@ -3,13 +3,14 @@ package services
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"reflect"
+	"strings"
+
 	"github.com/atlassian/go-artifactory/pkg/artifactory"
 	"github.com/ca-gip/artifactory-operator/internal/types"
 	"github.com/ca-gip/artifactory-operator/internal/utils"
 	"github.com/rs/zerolog"
-	"net/http"
-	"reflect"
-	"strings"
 )
 
 type ArtifactoryService struct {
@@ -29,7 +30,7 @@ type ArtifactorySecurity interface {
 	CreateOrReplaceGroup(ctx context.Context, groupName string, group *artifactory.Group) (*http.Response, error)
 }
 
-type ArtifactoryRepository interface{
+type ArtifactoryRepository interface {
 	GetLocal(ctx context.Context, repo string) (*artifactory.LocalRepository, *http.Response, error)
 	CreateLocal(ctx context.Context, repo *artifactory.LocalRepository) (*http.Response, error)
 	UpdateLocal(ctx context.Context, repo string, repository *artifactory.LocalRepository) (*http.Response, error)
@@ -115,6 +116,7 @@ func (s *ArtifactoryService) ArtifactoryRepositoryCreate(fields *types.Artifacto
 			RClass:          artifactory.String("local"),
 			PackageType:     artifactory.String("docker"),
 			HandleSnapshots: artifactory.Bool(false),
+			XrayIndex:       artifactory.Bool(true),
 			Description:     artifactory.String(fields.Description),
 		}
 
@@ -132,6 +134,7 @@ func (s *ArtifactoryService) ArtifactoryRepositoryCreate(fields *types.Artifacto
 			RClass:          artifactory.String("local"),
 			PackageType:     artifactory.String("docker"),
 			HandleSnapshots: artifactory.Bool(false),
+			XrayIndex:       artifactory.Bool(true),
 			Description:     artifactory.String(fields.Description),
 		}
 
@@ -178,35 +181,34 @@ func (s *ArtifactoryService) CreateArtifactoryGroup(fields *types.ArtifactoryInf
 
 	//Create Group function to Source Entity read on project
 	projectGroupCN, err := utils.ExtractLDAPCN(fields.SourceDN)
-	if err != nil{
-		s.logger.Error().Msgf("Unable to retrieve CN from group : %v",fields.SourceDN)
+	if err != nil {
+		s.logger.Error().Msgf("Unable to retrieve CN from group : %v", fields.SourceDN)
 	}
-	s.createArtifactoryGroup(computeLDAPGroup(projectGroupCN,fields.SourceDN), projectGroupCN)
+	s.createArtifactoryGroup(computeLDAPGroup(projectGroupCN, fields.SourceDN), projectGroupCN)
 
 	//Create Group for App OPS
 	AppOPSCN, err := utils.ExtractLDAPCN(s.LDAPGroups.AppOPS)
-	if err != nil{
-		s.logger.Error().Msgf("Unable to retrieve CN from group : %v",s.LDAPGroups.AppOPS)
+	if err != nil {
+		s.logger.Error().Msgf("Unable to retrieve CN from group : %v", s.LDAPGroups.AppOPS)
 	}
-	s.createArtifactoryGroup(computeLDAPGroup(AppOPSCN,s.LDAPGroups.AppOPS), AppOPSCN)
-
+	s.createArtifactoryGroup(computeLDAPGroup(AppOPSCN, s.LDAPGroups.AppOPS), AppOPSCN)
 
 	//Create Group for Customer OPS
 	customerOPSCN, err := utils.ExtractLDAPCN(s.LDAPGroups.CustomerOPS)
-	if err != nil{
-		s.logger.Error().Msgf("Unable to retrieve CN from group : %v",s.LDAPGroups.CustomerOPS)
+	if err != nil {
+		s.logger.Error().Msgf("Unable to retrieve CN from group : %v", s.LDAPGroups.CustomerOPS)
 	}
-	s.createArtifactoryGroup(computeLDAPGroup(customerOPSCN,s.LDAPGroups.CustomerOPS), customerOPSCN)
+	s.createArtifactoryGroup(computeLDAPGroup(customerOPSCN, s.LDAPGroups.CustomerOPS), customerOPSCN)
 
 	//Create Group for Viewer
 	viewerCN, err := utils.ExtractLDAPCN(s.LDAPGroups.Viewer)
-	if err != nil{
-		s.logger.Error().Msgf("Unable to retrieve CN from group : %v",s.LDAPGroups.Viewer)
+	if err != nil {
+		s.logger.Error().Msgf("Unable to retrieve CN from group : %v", s.LDAPGroups.Viewer)
 	}
-	s.createArtifactoryGroup(computeLDAPGroup(viewerCN,s.LDAPGroups.Viewer), viewerCN)
+	s.createArtifactoryGroup(computeLDAPGroup(viewerCN, s.LDAPGroups.Viewer), viewerCN)
 }
 
-func computeLDAPGroup(groupName, DN string ) *artifactory.Group {
+func computeLDAPGroup(groupName, DN string) *artifactory.Group {
 
 	realmAttribute := fmt.Sprintf("ldapGroupName=%s;groupsStrategy=STATIC;groupDn=%s", strings.ToUpper(groupName), DN)
 
@@ -222,14 +224,14 @@ func computeLDAPGroup(groupName, DN string ) *artifactory.Group {
 func (s *ArtifactoryService) createArtifactoryGroup(group *artifactory.Group, groupName string) (*http.Response, error) {
 	existingGroup, resp, err := s.Security.GetGroup(context.Background(), groupName)
 
-	if reflect.DeepEqual(existingGroup,group) {
+	if reflect.DeepEqual(existingGroup, group) {
 		return resp, err
 	}
 
 	s.logger.Debug().Msgf("temporary:createArtifactoryGroup resp is : %v ", resp)
 	s.logger.Debug().Msgf("temporary:createArtifactoryGroup err is : %v ", err)
 
-	if utils.HasANon404Error(err,resp) {
+	if utils.HasANon404Error(err, resp) {
 		return resp, err
 	}
 
@@ -368,7 +370,7 @@ func (s *ArtifactoryService) createArtifactoryPermissions(permissionName string,
 
 	existingPermissions, resp, err := s.artifactoryClient.Security.GetPermissionTargets(context.Background(), permissionName)
 
-	if err != nil && (resp == nil || resp.StatusCode != http.StatusNotFound ) {
+	if err != nil && (resp == nil || resp.StatusCode != http.StatusNotFound) {
 		s.logger.Error().Msgf("Technical Error occured during GetPermissionTargets reponse is empty and got error : '%s'", err.Error())
 		return
 	}
