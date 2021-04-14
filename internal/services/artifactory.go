@@ -124,6 +124,7 @@ func (s *ArtifactoryService) ArtifactoryRepositoryCreate(fields *types.Artifacto
 		if err != nil {
 			return repositoryNames, err
 		}
+		s.blockPushingSchema1(artifactoryRepositoryName, context.Background())
 	}
 
 	if s.SharedRepository == "true" {
@@ -458,4 +459,20 @@ func setUserRole(role string, userRole *map[string][]string, users *types.Artifa
 		userRole = &map[string][]string{users.UserNameRW: permissions}
 	}
 	return userRole
+}
+
+func (s *ArtifactoryService) blockPushingSchema1(repoName string, ctx context.Context) {
+
+	blockPushing := map[string]interface{}{
+		"blockPushingSchema1": bool(false),
+	}
+	req, err := s.artifactoryClient.NewJSONEncodedRequest("POST", "/api/repositories/"+repoName, blockPushing)
+
+	if err != nil {
+		s.logger.Error().Msgf("Technical Error occured during preparing update request: '%s'", err.Error())
+	}
+	_, er := s.artifactoryClient.Do(ctx, req, nil)
+	if er != nil {
+		s.logger.Error().Msgf("Technical Error occured during blockPushingSchema1 update: '%s'", er.Error())
+	}
 }
