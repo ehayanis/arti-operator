@@ -47,6 +47,7 @@ type ArtifactoryOperatorConfig struct {
 	ClusterDNSSubdomain           string
 	LDAPGroups                    LDAPGroups
 	SharedRepository              string
+	ArtifactoryServerToken        string
 }
 
 type LDAPGroups struct {

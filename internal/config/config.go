@@ -3,10 +3,11 @@ package config
 import (
 	"errors"
 	"fmt"
-	"github.com/ca-gip/artifactory-operator/internal/types"
-	"github.com/ca-gip/artifactory-operator/internal/utils"
 	"os"
 	"strings"
+
+	"github.com/ca-gip/artifactory-operator/internal/types"
+	"github.com/ca-gip/artifactory-operator/internal/utils"
 )
 
 func LoadConfig() (*types.ArtifactoryOperatorConfig, error) {
@@ -87,6 +88,19 @@ func LoadConfig() (*types.ArtifactoryOperatorConfig, error) {
 		return nil, err
 	}
 
+	artifactoryServerToken, ok := os.LookupEnv("ARTI_OP_ARTIFACTORY_SERVER_TOKEN")
+	if ok {
+		if strings.TrimSpace(artifactoryServerToken) == "" {
+			err := errors.New("ARTI_OP_ARTIFACTORY_SERVER_Toke, is required, but empty.")
+			return nil, err
+		}
+
+		result.ArtifactoryServerToken = artifactoryServerToken
+	} else {
+		err := errors.New("ARTI_OP_ARTIFACTORY_SERVER_Token is required.")
+		return nil, err
+	}
+
 	artifactoryServerPassword, ok := os.LookupEnv("ARTI_OP_ARTIFACTORY_SERVER_PASSWORD")
 	if ok {
 		if strings.TrimSpace(artifactoryServerPassword) == "" {
@@ -125,7 +139,6 @@ func LoadConfig() (*types.ArtifactoryOperatorConfig, error) {
 		err := errors.New("LDAP_APP_OPS_GROUPBASE is required.")
 		return nil, err
 	}
-
 
 	customerOPS, ok := os.LookupEnv("LDAP_CUSTOMER_OPS_GROUPBASE")
 	if ok {

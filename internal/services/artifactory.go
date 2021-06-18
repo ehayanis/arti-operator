@@ -23,6 +23,8 @@ type ArtifactoryService struct {
 	Security             ArtifactorySecurity
 	Repository           ArtifactoryRepository
 	SharedRepository     string
+	ArtifactoryToken     string
+	Client               *http.Client
 }
 
 type ArtifactorySecurity interface {
@@ -60,6 +62,8 @@ func NewArtifactoryService(operatorConfig *types.ArtifactoryOperatorConfig, Pass
 		Security:             client.Security,
 		Repository:           client.Repositories,
 		SharedRepository:     operatorConfig.SharedRepository,
+		ArtifactoryToken:     operatorConfig.ArtifactoryServerToken,
+		Client:               &http.Client{},
 	}
 
 	return result, nil
@@ -125,6 +129,13 @@ func (s *ArtifactoryService) ArtifactoryRepositoryCreate(fields *types.Artifacto
 			return repositoryNames, err
 		}
 		s.blockPushingSchema1(artifactoryRepositoryName, context.Background())
+		if stage == utils.ArtifactoryStageStable {
+			s.AddrepositoryToProject(artifactoryRepositoryName, fields.Tenant+"p", context.Background())
+		} else {
+
+			s.AddrepositoryToProject(artifactoryRepositoryName, fields.Tenant+"h", context.Background())
+		}
+
 	}
 
 	if s.SharedRepository == "true" {
@@ -475,4 +486,39 @@ func (s *ArtifactoryService) blockPushingSchema1(repoName string, ctx context.Co
 	if er != nil {
 		s.logger.Error().Msgf("Technical Error occured during blockPushingSchema1 update: '%s'", er.Error())
 	}
+}
+
+func (s *ArtifactoryService) AddrepositoryToProject(repoName string, projectKey string, ctx context.Context) {
+
+	req, err := s.artifactoryClient.NewJSONEncodedRequest("PUT", "/access/api/v1/projects/_/share/repositories/"+repoName+"/"+projectKey, nil)
+
+	req.URL.Path = "/access/api/v1/projects/_/share/repositories/" + repoName + "/" + projectKey
+
+	if err != nil {
+		s.logger.Error().Msgf("Technical Error occured during preparing update request: '%s'", err.Error())
+	}
+	_, err = s.execRequest(req)
+	if err != nil {
+		s.logger.Error().Msgf("Technical Error occured during AddrepositoryToProject update: '%s'", err.Error())
+	}
+
+}
+
+func (s *ArtifactoryService) execRequest(req *http.Request) (*http.Response, error) {
+
+	bearer := "Bearer " + s.ArtifactoryToken
+
+	req.Header.Add("Authorization", bearer)
+	resp, err := s.Client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= http.StatusBadRequest {
+		return nil, fmt.Errorf("failed execRequest : <%d> %s %s", resp.StatusCode, req.Method, req.URL)
+	}
+
+	return resp, err
+
 }
