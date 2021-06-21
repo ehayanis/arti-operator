@@ -91,26 +91,13 @@ func LoadConfig() (*types.ArtifactoryOperatorConfig, error) {
 	artifactoryServerToken, ok := os.LookupEnv("ARTI_OP_ARTIFACTORY_SERVER_TOKEN")
 	if ok {
 		if strings.TrimSpace(artifactoryServerToken) == "" {
-			err := errors.New("ARTI_OP_ARTIFACTORY_SERVER_Toke, is required, but empty.")
+			err := errors.New("ARTI_OP_ARTIFACTORY_SERVER_TOKEN is required, but empty.")
 			return nil, err
 		}
 
 		result.ArtifactoryServerToken = artifactoryServerToken
 	} else {
-		err := errors.New("ARTI_OP_ARTIFACTORY_SERVER_Token is required.")
-		return nil, err
-	}
-
-	artifactoryServerPassword, ok := os.LookupEnv("ARTI_OP_ARTIFACTORY_SERVER_PASSWORD")
-	if ok {
-		if strings.TrimSpace(artifactoryServerPassword) == "" {
-			err := errors.New("ARTI_OP_ARTIFACTORY_SERVER_PASSWORD is required, but empty.")
-			return nil, err
-		}
-
-		result.ArtifactoryServerPassword = artifactoryServerPassword
-	} else {
-		err := errors.New("ARTI_OP_ARTIFACTORY_SERVER_PASSWORD is required.")
+		err := errors.New("ARTI_OP_ARTIFACTORY_SERVER_TOKEN is required.")
 		return nil, err
 	}
 
