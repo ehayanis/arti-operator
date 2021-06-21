@@ -43,7 +43,7 @@ func NewArtifactoryService(operatorConfig *types.ArtifactoryOperatorConfig, Pass
 
 	tp := artifactory.BasicAuthTransport{
 		Username: operatorConfig.ArtifactoryServerUser,
-		Password: operatorConfig.ArtifactoryServerPassword,
+		Password: operatorConfig.ArtifactoryServerToken,
 	}
 
 	client, err := artifactory.NewClient(operatorConfig.ArtifactoryServerUrl, tp.Client())
@@ -130,12 +130,11 @@ func (s *ArtifactoryService) ArtifactoryRepositoryCreate(fields *types.Artifacto
 		}
 		s.blockPushingSchema1(artifactoryRepositoryName, context.Background())
 		if stage == utils.ArtifactoryStageStable {
-			s.AddrepositoryToProject(artifactoryRepositoryName, fields.Tenant+"p", context.Background())
+			s.AddrepositoryToProject(artifactoryRepositoryName, utils.ExtractProjectKey(fields.Tenant)+"p", context.Background())
 		} else {
 
-			s.AddrepositoryToProject(artifactoryRepositoryName, fields.Tenant+"h", context.Background())
+			s.AddrepositoryToProject(artifactoryRepositoryName, utils.ExtractProjectKey(fields.Tenant)+"hp", context.Background())
 		}
-
 	}
 
 	if s.SharedRepository == "true" {
@@ -154,6 +153,7 @@ func (s *ArtifactoryService) ArtifactoryRepositoryCreate(fields *types.Artifacto
 		if err != nil {
 			return repositoryNames, err
 		}
+		s.AddrepositoryToProject(sharedRepoName, utils.ExtractProjectKey(fields.Tenant)+"p", context.Background())
 	}
 
 	return repositoryNames, nil

@@ -41,7 +41,6 @@ type ArtifactoryOperatorConfig struct {
 	PasswordStoreSecretNamePrefix string
 	ArtifactoryServerUrl          string
 	ArtifactoryServerUser         string
-	ArtifactoryServerPassword     string
 	VaultServerToken              string
 	VaultServerUrl                string
 	ClusterDNSSubdomain           string

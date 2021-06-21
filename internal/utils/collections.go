@@ -165,3 +165,12 @@ func ExtractLDAPCN(DN string) (string, error) {
 
 	return strings.ToLower(cn[1]), nil
 }
+
+func ExtractProjectKey(tenant string) string {
+	if len(tenant) < 4 {
+		return strings.ToLower(tenant)
+	} else {
+
+		return strings.ToLower(tenant[0:2] + tenant[len(tenant)-2:])
+	}
+}
