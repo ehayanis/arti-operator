@@ -69,7 +69,7 @@ func WatchProjects(operatorConfig *types.ArtifactoryOperatorConfig) cache.Store 
 	projectService := config.InstanciateServices(kconfig, operatorConfig, logger)
 
 	watchlist := cache.NewListWatchFromClient(v3.CagipV1().RESTClient(), "projects", v12.NamespaceAll, fields.Everything())
-	resyncPeriod := 30 * time.Minute
+	resyncPeriod := 4 * time.Hour
 
 	store, controller := cache.NewInformer(watchlist, &v1.Project{}, resyncPeriod, cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
