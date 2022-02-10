@@ -90,11 +90,16 @@ kubectl apply -f deployment/*
 | :--------------                 | :-----------------------------:      | ----------------------------: | ---------:| ----------:  |
 |  **ARTI_OP_ARTIFACTORY_SERVER_URL**       |  *Artifactory server URL*           | `https://artifactory.example.com`      | `yes`     | -           |
 |  **ARTI_OP_ARTIFACTORY_SERVER_USER**              |  *Name of an Artifactory admin user*       | `admin` | `yes`     | -           |
-|  **ARTI_OP_ARTIFACTORY_SERVER_PASSWORD**             |  *Password for the Artifactory user*      | - | `yes`     | -           |
 |  **ARTI_OP_CLUSTER_LOCATION**        |  *K8S cluster location ('intranet' or 'extranet')*      | `intranet`  | `yes`     | -           |
+|  **ARTI_OP_CLUSTER_DNSSUBDOMAIN**        |  *K8S cluster location ('intranet' or 'extranet')*      | `devopshp`  | `yes`  | -           |
 |  **ARTI_OP_PASSWORDSTORE_BACKEND_NAMESPACE**       |  *K8S namespace wher the operator will persist passwords generated for Artifactory users*| `kube-system`| `no`     | `kube-system`           |
 |  **ARTI_OP_PASSWORDSTORE_SECRET_NAME_PREFIX**                |  *Prefix added to the names of password secrets*            | `artifactory-user` | `yes  `     | `artifactory-user`           |
-|  **ARTI_OP_VAULT_SERVER_URL**        |
+|  **ARTI_OP_VAULT_SERVER_URL**        | *URL Vault* | `yes` | - |
+|  **ARTI_OP_VAULT_TOKEN**        | *Token Vault* | `yes` | - |
+|  **ARTI_OP_ARTIFACTORY_SERVER_TOKEN** | *Artifactory Token for ARTI_OP_ARTIFACTORY_SERVER_USER* | `yes` | - |
+|  **LDAP_APP_OPS_GROUPBASE** | *CN=TRIPTYQUE_ALL,OU=FACTORY_DEVOPS,OU=Applications,OU=Groupes,O=CA* | `yes` | - |
+|  **LDAP_CUSTOMER_OPS_GROUPBASE** |  | `yes` | - |
+|  **SHARED_REPOSITORY** | *Activate shared repository feature* | `yes` | - |
 
 # Required permissions
 
