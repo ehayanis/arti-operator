@@ -129,12 +129,12 @@ func (s *ArtifactoryService) ArtifactoryRepositoryCreate(fields *types.Artifacto
 			return repositoryNames, err
 		}
 		s.blockPushingSchema1(artifactoryRepositoryName, context.Background())
-		if stage == utils.ArtifactoryStageStable {
+		s.AddrepositoryToProject(artifactoryRepositoryName, utils.ExtractProjectKey(fields.Tenant), context.Background())
+		/*if stage == utils.ArtifactoryStageStable {
 			s.AddrepositoryToProject(artifactoryRepositoryName, utils.ExtractProjectKey(fields.Tenant)+"p", context.Background())
 		} else {
-
 			s.AddrepositoryToProject(artifactoryRepositoryName, utils.ExtractProjectKey(fields.Tenant)+"hp", context.Background())
-		}
+		}*/
 	}
 
 	if s.SharedRepository == "true" {
@@ -153,7 +153,7 @@ func (s *ArtifactoryService) ArtifactoryRepositoryCreate(fields *types.Artifacto
 		if err != nil {
 			return repositoryNames, err
 		}
-		s.AddrepositoryToProject(sharedRepoName, utils.ExtractProjectKey(fields.Tenant)+"p", context.Background())
+		s.AddrepositoryToProject(sharedRepoName, utils.ExtractProjectKey(fields.Tenant), context.Background())
 	}
 
 	return repositoryNames, nil
