@@ -497,7 +497,7 @@ func (s *ArtifactoryService) AddrepositoryToProject(repoName string, projectKey 
 	if err != nil {
 		s.logger.Error().Msgf("Technical Error occured during preparing update request: '%s'", err.Error())
 	}
-	resp, err = s.execRequest(req)
+	resp, err := s.execRequest(req)
 	if err != nil && resp.StatusCode != 405 {
 		s.logger.Error().Msgf("Technical Error occured during AddrepositoryToProject update: '%s'", err.Error())
 	}
