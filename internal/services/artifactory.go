@@ -492,7 +492,7 @@ func (s *ArtifactoryService) AddrepositoryToProject(repoName string, projectKey 
 
 	req, err := s.artifactoryClient.NewJSONEncodedRequest("PUT", "/access/api/v1/projects/_/share/repositories/"+repoName+"/"+projectKey, nil)
 
-	//req.URL.Path = "/access/api/v1/projects/_/share/repositories/" + repoName + "/" + projectKey
+	req.URL.Path = "/access/api/v1/projects/_/share/repositories/" + repoName + "/" + projectKey
 
 	if err != nil {
 		s.logger.Error().Msgf("Technical Error occured during preparing update request: '%s'", err.Error())
