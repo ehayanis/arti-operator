@@ -516,7 +516,7 @@ func (s *ArtifactoryService) execRequest(req *http.Request) (*http.Response, err
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= http.StatusBadRequest {
-		return nil, fmt.Errorf("failed execRequest : <%d> %s %s", resp.StatusCode, req.Method, req.URL)
+		return resp, fmt.Errorf("failed execRequest : <%d> %s %s", resp.StatusCode, req.Method, req.URL)
 	}
 
 	return resp, err
