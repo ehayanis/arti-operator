@@ -490,15 +490,14 @@ func (s *ArtifactoryService) blockPushingSchema1(repoName string, ctx context.Co
 
 func (s *ArtifactoryService) AddrepositoryToProject(repoName string, projectKey string, ctx context.Context) {
 
-	req, err := s.artifactoryClient.NewJSONEncodedRequest("PUT", "/access/api/v1/projects/_/share/repositories/"+repoName+"/"+projectKey, nil)
-
-	req.URL.Path = "/access/api/v1/projects/_/share/repositories/" + repoName + "/" + projectKey
+	req, err := s.artifactoryClient.NewJSONEncodedRequest("PUT", "/access/api/v1/projects/_/attach/repositories/"+repoName+"/"+projectKey+"?force=true", nil)
+	req.URL.Path = "/access/api/v1/projects/_/attach/repositories/" + repoName + "/" + projectKey
 
 	if err != nil {
 		s.logger.Error().Msgf("Technical Error occured during preparing update request: '%s'", err.Error())
 	}
-	resp, err := s.execRequest(req)
-	if err != nil && resp.StatusCode != 400 {
+	_, err = s.execRequest(req)
+	if err != nil {
 		s.logger.Error().Msgf("Technical Error occured during AddrepositoryToProject update: '%s'", err.Error())
 	}
 
