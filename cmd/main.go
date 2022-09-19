@@ -2,20 +2,21 @@ package main
 
 import (
 	"fmt"
+	"net/http"
+	"os"
+	"time"
+
 	"github.com/ca-gip/artifactory-operator/internal/types"
 	"github.com/rs/zerolog"
 	"goji.io"
 	"goji.io/pat"
-	"net/http"
-	"os"
-	"time"
 
 	"github.com/ca-gip/artifactory-operator/internal/config"
 	"github.com/ca-gip/artifactory-operator/internal/services"
 	"github.com/ca-gip/artifactory-operator/pkg/route"
 
 	"github.com/ca-gip/artifactory-operator/internal/utils"
-	"github.com/ca-gip/kubi/pkg/apis/ca-gip/v1"
+	v1 "github.com/ca-gip/kubi/pkg/apis/ca-gip/v1"
 	v12 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -69,7 +70,7 @@ func WatchProjects(operatorConfig *types.ArtifactoryOperatorConfig) cache.Store 
 	projectService := config.InstanciateServices(kconfig, operatorConfig, logger)
 
 	watchlist := cache.NewListWatchFromClient(v3.CagipV1().RESTClient(), "projects", v12.NamespaceAll, fields.Everything())
-	resyncPeriod := 4 * time.Hour
+	resyncPeriod := 12 * time.Hour
 
 	store, controller := cache.NewInformer(watchlist, &v1.Project{}, resyncPeriod, cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
