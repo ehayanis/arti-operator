@@ -2,7 +2,9 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"reflect"
 	"strings"
@@ -105,6 +107,36 @@ func stageInFields(stage string, fields *types.ArtifactoryInformation) bool {
 	return false
 }
 
+func (s *ArtifactoryService) ArtifactorySimpleRequest(method string, url string) (map[string]interface{}, int, error) {
+	client := &http.Client{}
+
+	req, err := http.NewRequest(method, "https://rct-repository.saas.cagip.group.gca/artifactory"+url, nil)
+	if err != nil {
+		return nil, -1, err
+	}
+
+	req.Header.Add("Authorization", "Bearer "+s.ArtifactoryToken)
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, -1, err
+	} else if resp.StatusCode >= 500 {
+		return nil, resp.StatusCode, fmt.Errorf("Request failure : [%v] %v", method, url)
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, resp.StatusCode, err
+	}
+
+	var jsout map[string]interface{}
+	err = json.Unmarshal(body, &jsout)
+	if err != nil {
+		return nil, resp.StatusCode, err
+	}
+
+	return jsout, resp.StatusCode, nil
+}
+
 func (s *ArtifactoryService) ArtifactoryRepositoryCreate(fields *types.ArtifactoryInformation) ([]string, error) {
 	repositoryNames := []string{}
 
@@ -130,11 +162,6 @@ func (s *ArtifactoryService) ArtifactoryRepositoryCreate(fields *types.Artifacto
 		}
 		s.blockPushingSchema1(artifactoryRepositoryName, context.Background())
 		s.AddrepositoryToProject(artifactoryRepositoryName, utils.ExtractProjectKey(fields.Tenant), context.Background())
-		/*if stage == utils.ArtifactoryStageStable {
-			s.AddrepositoryToProject(artifactoryRepositoryName, utils.ExtractProjectKey(fields.Tenant)+"p", context.Background())
-		} else {
-			s.AddrepositoryToProject(artifactoryRepositoryName, utils.ExtractProjectKey(fields.Tenant)+"hp", context.Background())
-		}*/
 	}
 
 	if s.SharedRepository == "true" {
@@ -160,6 +187,10 @@ func (s *ArtifactoryService) ArtifactoryRepositoryCreate(fields *types.Artifacto
 }
 
 func (s *ArtifactoryService) repositoryCreateOrUpdateIfItDoesNotExists(artifactoryRepositoryName string, repo artifactory.LocalRepository) (string, error) {
+	/*jsout, status, err := s.ArtifactorySimpleRequest("GET", "/api/repositories/"+artifactoryRepositoryName)
+	if err == nil && status >= 200 {
+		print(jsout)
+	}*/
 	existingRepo, response, err := s.Repository.GetLocal(context.Background(), artifactoryRepositoryName)
 	//AUG: Attention, l'API Artifactory renvoie un 400 bad request si la ressource n'existe pas.
 	if err != nil {

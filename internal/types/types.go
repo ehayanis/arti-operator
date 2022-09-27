@@ -1,5 +1,7 @@
 package types
 
+import "time"
+
 type ArtifactoryInformation struct {
 	Tenant              string
 	ProjectName         string   // cr
@@ -47,6 +49,7 @@ type ArtifactoryOperatorConfig struct {
 	LDAPGroups                    LDAPGroups
 	SharedRepository              string
 	ArtifactoryServerToken        string
+	ProjectResyncPeriod           time.Duration
 }
 
 type LDAPGroups struct {

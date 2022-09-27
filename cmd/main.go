@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/ca-gip/artifactory-operator/internal/types"
 	"github.com/rs/zerolog"
@@ -70,9 +69,8 @@ func WatchProjects(operatorConfig *types.ArtifactoryOperatorConfig) cache.Store 
 	projectService := config.InstanciateServices(kconfig, operatorConfig, logger)
 
 	watchlist := cache.NewListWatchFromClient(v3.CagipV1().RESTClient(), "projects", v12.NamespaceAll, fields.Everything())
-	resyncPeriod := 12 * time.Hour
 
-	store, controller := cache.NewInformer(watchlist, &v1.Project{}, resyncPeriod, cache.ResourceEventHandlerFuncs{
+	store, controller := cache.NewInformer(watchlist, &v1.Project{}, operatorConfig.ProjectResyncPeriod, cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			projectCreated(obj, projectService)
 		},

@@ -4,14 +4,15 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
-	"github.com/ca-gip/artifactory-operator/internal/types"
-	"github.com/hashicorp/vault/api"
 	"regexp"
 	"strings"
 
+	"github.com/ca-gip/artifactory-operator/internal/types"
+	"github.com/hashicorp/vault/api"
+
 	"github.com/ca-gip/artifactory-operator/internal/utils"
 	"github.com/rs/zerolog"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"

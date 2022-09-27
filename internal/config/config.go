@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ca-gip/artifactory-operator/internal/types"
 	"github.com/ca-gip/artifactory-operator/internal/utils"
@@ -164,6 +166,20 @@ func LoadConfig() (*types.ArtifactoryOperatorConfig, error) {
 	} else {
 		err := errors.New("SKIP_SHARED_REPOSITORY is required.")
 		return nil, err
+	}
+
+	logger := utils.Log.With().Str("service", "project").Logger()
+	result.ProjectResyncPeriod = time.Hour * 4
+	projectResyncPeriod, ok := os.LookupEnv("ARTI_OP_RESYNC_PERIOD_SECONDS")
+	if !ok || strings.TrimSpace(projectResyncPeriod) == "" {
+		logger.Warn().Msgf("ARTI_OP_RESYNC_PERIOD_SECONDS is empty, using default value : 14400 (4 hours)")
+	} else {
+		intProjectResyncPeriod, err := strconv.Atoi(projectResyncPeriod)
+		if err != nil {
+			logger.Warn().Msgf("ARTI_OP_RESYNC_PERIOD_SECONDS is not valid, using default value : 14400 (4 hours)")
+		} else {
+			result.ProjectResyncPeriod = time.Second * time.Duration(intProjectResyncPeriod)
+		}
 	}
 
 	return result, nil
