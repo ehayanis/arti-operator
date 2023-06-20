@@ -4,7 +4,7 @@ kind: Namespace
 metadata:
   name: e4-production
 ---
-apiVersion: "ca-gip.github.com/v1"
+apiVersion: "cagip.github.com/v1"
 kind: Project
 metadata:
   name: e4-production
