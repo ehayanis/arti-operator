@@ -3,8 +3,9 @@ package utils
 import (
 	"errors"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMapEquals(t *testing.T) {
@@ -16,11 +17,11 @@ func TestMapEquals(t *testing.T) {
 	t.Run("two list with same content should be equals", func(t *testing.T) {
 
 		left := map[string][]string{
-			"groupA": []string{"a", "b", "c"},
+			"groupA": {"a", "b", "c"},
 		}
 
 		right := map[string][]string{
-			"groupA": []string{"a", "b", "c"},
+			"groupA": {"a", "b", "c"},
 		}
 		assert.True(t, MapEquals(&left, &right))
 	})
@@ -28,11 +29,11 @@ func TestMapEquals(t *testing.T) {
 	t.Run("two list with same content with different order should be equals", func(t *testing.T) {
 
 		left := map[string][]string{
-			"groupA": []string{"a", "b", "c"},
+			"groupA": {"a", "b", "c"},
 		}
 
 		right := map[string][]string{
-			"groupA": []string{"a", "c", "b"},
+			"groupA": {"a", "c", "b"},
 		}
 		assert.True(t, MapEquals(&left, &right))
 	})
@@ -40,11 +41,11 @@ func TestMapEquals(t *testing.T) {
 	t.Run("two list with different content not be equals", func(t *testing.T) {
 
 		left := map[string][]string{
-			"groupA": []string{"a", "b", "c"},
+			"groupA": {"a", "b", "c"},
 		}
 
 		right := map[string][]string{
-			"groupA": []string{"a", "b", "d"},
+			"groupA": {"a", "b", "d"},
 		}
 		assert.False(t, MapEquals(&left, &right))
 	})
@@ -52,11 +53,11 @@ func TestMapEquals(t *testing.T) {
 	t.Run("two list with the first contained into the second should not be equals", func(t *testing.T) {
 
 		left := map[string][]string{
-			"groupA": []string{"a", "b", "c"},
+			"groupA": {"a", "b", "c"},
 		}
 
 		right := map[string][]string{
-			"groupA": []string{"a", "b", "c", "d"},
+			"groupA": {"a", "b", "c", "d"},
 		}
 		assert.False(t, MapEquals(&left, &right))
 	})
@@ -64,11 +65,11 @@ func TestMapEquals(t *testing.T) {
 	t.Run("two list with the second contained into the second should not be equals", func(t *testing.T) {
 
 		left := map[string][]string{
-			"groupA": []string{"a", "b", "c"},
+			"groupA": {"a", "b", "c"},
 		}
 
 		right := map[string][]string{
-			"groupA": []string{"a", "b", "c", "d"},
+			"groupA": {"a", "b", "c", "d"},
 		}
 		assert.False(t, MapEquals(&right, &left))
 	})
@@ -83,11 +84,11 @@ func TestMapConcat(t *testing.T) {
 	t.Run("two map with same content should return the content of the first", func(t *testing.T) {
 
 		left := map[string][]string{
-			"groupA": []string{"a", "b", "c"},
+			"groupA": {"a", "b", "c"},
 		}
 
 		right := map[string][]string{
-			"groupA": []string{"a", "b", "c"},
+			"groupA": {"a", "b", "c"},
 		}
 		assert.Equal(t, MapConcat(&left, &right), &left)
 	})
@@ -95,11 +96,11 @@ func TestMapConcat(t *testing.T) {
 	t.Run("two map with same key should return the union of values", func(t *testing.T) {
 
 		left := map[string][]string{
-			"groupA": []string{"a", "b", "c"},
+			"groupA": {"a", "b", "c"},
 		}
 
 		right := map[string][]string{
-			"groupA": []string{"d", "e", "f"},
+			"groupA": {"d", "e", "f"},
 		}
 		concat := *MapConcat(&left, &right)
 		list := concat["groupA"]
@@ -109,11 +110,11 @@ func TestMapConcat(t *testing.T) {
 	t.Run("two map with same key should return the union of values", func(t *testing.T) {
 
 		left := map[string][]string{
-			"groupA": []string{"a", "b", "c"},
+			"groupA": {"a", "b", "c"},
 		}
 
 		right := map[string][]string{
-			"groupB": []string{"d", "e", "f"},
+			"groupB": {"d", "e", "f"},
 		}
 		concat := *MapConcat(&left, &right)
 		list := concat["groupB"]

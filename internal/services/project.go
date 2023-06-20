@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/url"
@@ -86,7 +87,7 @@ func (s *ProjectService) HandleProject(project *kubiv1.Project) error {
 }
 
 func (s *ProjectService) annotateNamespace(project *kubiv1.Project, repos []string) error {
-	currentNamespace, err := s.kClient.CoreV1().Namespaces().Get(project.Name, metav1.GetOptions{})
+	currentNamespace, err := s.kClient.CoreV1().Namespaces().Get(context.TODO(), project.Name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -107,7 +108,7 @@ func (s *ProjectService) annotateNamespace(project *kubiv1.Project, repos []stri
 	annotations[utils.WhitelistKey] = strings.Join(fqdnRepos[:], ",")
 	currentNamespace.SetAnnotations(annotations)
 
-	_, err = s.kClient.CoreV1().Namespaces().Update(currentNamespace)
+	_, err = s.kClient.CoreV1().Namespaces().Update(context.TODO(), currentNamespace, metav1.UpdateOptions{})
 	if err != nil {
 		return err
 	}
@@ -190,7 +191,7 @@ func (s *ProjectService) createArtifactoryResources(project *kubiv1.Project) ([]
 	}
 
 	if !skip_found {
-		secret, err := coreClient.CoreV1().Secrets(s.artifactoryService.PasswordStoreService.secretsNamespace).Get(secretName, metav1.GetOptions{})
+		secret, err := coreClient.CoreV1().Secrets(s.artifactoryService.PasswordStoreService.secretsNamespace).Get(context.TODO(), secretName, metav1.GetOptions{})
 		if err == nil {
 			_, keyExists := secret.Data["password"]
 			if keyExists {
