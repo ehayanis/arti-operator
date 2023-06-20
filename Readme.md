@@ -5,7 +5,7 @@ Creates Artifactory Docker registries and the users to access them based on inst
 In an `intranet` cluster, for the following Project resource :
 ```yaml
 ---
-apiVersion: "ca-gip.github.com/v1"
+apiVersion: "cagip.github.com/v1"
 kind: Project
 metadata:
   name: sampleorg-project1-development
