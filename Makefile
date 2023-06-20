@@ -9,13 +9,13 @@ DOCKER_REPO ?= silca-tools-docker-scratch-intranet.registry.saas.cagip.gca
 
 
 build:
-	CGO_ENABLED=0 go build -v -o ./build/artifactory-operator -i $(GOPATH)/src/$(REPO)/cmd/main.go
+	CGO_ENABLED=0 go build -v -o ./build/artifactory-operator $(GOPATH)/src/$(REPO)/cmd/main.go
 
 darwin:
-	GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s" -o artifactory-operator  $(GOPATH)/src/$(REPO)/cmd/main.go
+	GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s" -o artifactory-operator $(GOPATH)/src/$(REPO)/cmd/main.go
 
 linux:
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s" -o artifactory-operator  $(GOPATH)/src/$(REPO)/cmd/main.go
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s" -o artifactory-operator $(GOPATH)/src/$(REPO)/cmd/main.go
 
 image:
 	docker build --build-arg HTTP_PROXY=http://127.0.0.1:3128  --build-arg HTTPS_PROXY=http://127.0.0.1:3128 --network=host -t "$(DOCKER_REPO)/$(IMAGE):$(TAG)" .
@@ -28,6 +28,7 @@ release:
 dep:
 	go mod download
 	go mod tidy
+	go mod vendor
 
 test:
 	go test ./... -v
