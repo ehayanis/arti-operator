@@ -2,7 +2,7 @@ package utils
 
 import (
 	"errors"
-	"github.com/ca-gip/kubi/pkg/apis/ca-gip/v1"
+	"github.com/ca-gip/kubi/pkg/apis/cagip/v1"
 	"strings"
 )
 

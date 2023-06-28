@@ -10,7 +10,7 @@ import (
 
 	"github.com/ca-gip/artifactory-operator/internal/types"
 	"github.com/ca-gip/artifactory-operator/internal/utils"
-	kubiv1 "github.com/ca-gip/kubi/pkg/apis/ca-gip/v1"
+	kubiv1 "github.com/ca-gip/kubi/pkg/apis/cagip/v1"
 	"github.com/rs/zerolog"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
