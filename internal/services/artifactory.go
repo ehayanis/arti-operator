@@ -160,7 +160,7 @@ func (s *ArtifactoryService) ArtifactoryRepositoryCreate(fields *types.Artifacto
 		if err != nil {
 			return repositoryNames, err
 		}
-		s.blockPushingSchema1(artifactoryRepositoryName, context.Background())
+		s.blockPushingSchema1(artifactoryRepositoryName, context.TODO())
 		s.AddrepositoryToProject(artifactoryRepositoryName, utils.ExtractProjectKey(fields.Tenant), context.Background())
 	}
 
