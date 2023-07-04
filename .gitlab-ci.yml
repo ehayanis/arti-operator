@@ -1,7 +1,16 @@
 stages:
+  - Menage
   - Dev
   - Build
   - Promote
+
+Menage:
+  stage: Menage
+  tags:
+    - native-runner
+  script:
+    - docker image prune -a --force 
+  allow_failure: true
 
 Build Dev:
   image: docker-remote.registry.saas.cagip.group.gca/docker:stable
