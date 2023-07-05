@@ -6,8 +6,6 @@ stages:
 
 Menage:
   stage: Menage
-  tags:
-    - native-runner
   script:
     - docker image prune -a --force 
   allow_failure: true
@@ -24,8 +22,6 @@ Build Dev:
   script:
     - docker build --build-arg HTTP_PROXY=http://$PROXY_RUNNER --build-arg HTTPS_PROXY=http://$PROXY_RUNNER --network=host -t $IMAGE_BASE_NAME:$(cat version.txt)-testing .
     - docker push $IMAGE_BASE_NAME:$(cat version.txt)-testing
-  tags:
-    - native-runner
 
 Build:
   image: docker-remote.registry.saas.cagip.group.gca/docker:stable
@@ -42,8 +38,6 @@ Build:
   script:
     - docker build --build-arg HTTP_PROXY=http://$PROXY_RUNNER --build-arg HTTPS_PROXY=http://$PROXY_RUNNER --network=host -t $IMAGE_BASE_NAME:$(cat version.txt)-master .
     - docker push $IMAGE_BASE_NAME:$(cat version.txt)-master
-  tags:
-    - native-runner
 
 Promote Image:
   image: cagip-hub.registry.saas.cagip.group.gca/alpine-curl
@@ -57,5 +51,3 @@ Promote Image:
   script:
     - |
       curl -u "silca-tools-docker-scratch-intranet:$AD_PASSWD" -X POST "https://silca-tools-docker-scratch-intranet.registry.saas.cagip.group.gca/v2/promote" -H "Content-Type: application/json" -kv -d "{ \"targetRepo\":\"silca-tools-docker-stable-intranet\", \"dockerRepository\":\"artifactory-operator\", \"tag\":\"$(cat version.txt)-master\", \"targetTag\":\"$(cat version.txt)\" ,\"copy\":\"true\" }"
-  tags:
-    - native-runner
