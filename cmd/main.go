@@ -15,7 +15,7 @@ import (
 	"github.com/ca-gip/artifactory-operator/pkg/route"
 
 	"github.com/ca-gip/artifactory-operator/internal/utils"
-	v1 "github.com/ca-gip/kubi/pkg/apis/ca-gip/v1"
+	v1 "github.com/ca-gip/kubi/pkg/apis/cagip/v1"
 	v12 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/wait"

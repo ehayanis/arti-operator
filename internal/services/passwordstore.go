@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
@@ -57,12 +58,12 @@ func (s *PasswordStoreService) GetUserPassword(username string) (password string
 
 	secret := s.newPasswordSecretForUser(username)
 
-	_, err = coreClient.CoreV1().Secrets(s.secretsNamespace).Create(secret)
+	_, err = coreClient.CoreV1().Secrets(s.secretsNamespace).Create(context.TODO(), secret, metav1.CreateOptions{})
 
 	if err != nil {
 		// If the object already exists, we get it to extract the password from it
 		if k8serrors.IsAlreadyExists(err) {
-			secret, err = coreClient.CoreV1().Secrets(s.secretsNamespace).Get(secret.ObjectMeta.Name, metav1.GetOptions{})
+			secret, err = coreClient.CoreV1().Secrets(s.secretsNamespace).Get(context.TODO(), secret.ObjectMeta.Name, metav1.GetOptions{})
 			if err != nil {
 				s.logger.Info().Err(err).Str("namespace", s.secretsNamespace).Msgf("Cannot get existing user secret : %s.", secret.ObjectMeta.Name)
 				return "", err

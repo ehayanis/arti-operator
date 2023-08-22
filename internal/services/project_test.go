@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	kubiv1 "github.com/ca-gip/kubi/pkg/apis/ca-gip/v1"
+	kubiv1 "github.com/ca-gip/kubi/pkg/apis/cagip/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

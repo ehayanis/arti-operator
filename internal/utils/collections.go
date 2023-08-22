@@ -140,14 +140,14 @@ func MapConcat(a, b *map[string][]string) *map[string][]string {
 	right := *b
 
 	result := map[string][]string{}
-	for key, _ := range right {
+	for key := range right {
 		if _, exist := left[key]; exist {
 			result[key] = Uniq(append(left[key], right[key]...))
 		} else {
 			result[key] = Uniq(right[key])
 		}
 	}
-	for key, _ := range left {
+	for key := range left {
 		if _, exist := right[key]; !exist {
 			result[key] = Uniq(left[key])
 		}

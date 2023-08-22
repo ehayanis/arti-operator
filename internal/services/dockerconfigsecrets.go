@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"reflect"
@@ -45,13 +46,13 @@ func (s *DockerConfigSecretsService) CreateOrUpdateDockerConfigSecret(namespace 
 
 	secretsClient := coreClient.CoreV1().Secrets(namespace)
 
-	existingsecret, err := secretsClient.Get(secret.Name, metav1.GetOptions{})
+	existingsecret, err := secretsClient.Get(context.TODO(), secret.Name, metav1.GetOptions{})
 	if k8serrors.IsNotFound(err) {
 		s.logger.Info().Msgf("Creating docker config secret: %v for namespace: %v", ips.Name, namespace)
-		returnedSecret, err = secretsClient.Create(secret)
+		returnedSecret, err = secretsClient.Create(context.TODO(), secret, metav1.CreateOptions{})
 	} else if !reflect.DeepEqual(existingsecret.Data, secret.Data) {
 		s.logger.Info().Msgf("Updating docker config secret: %v for namespace: %v", ips.Name, namespace)
-		returnedSecret, err = secretsClient.Update(secret)
+		returnedSecret, err = secretsClient.Update(context.TODO(), secret, metav1.UpdateOptions{})
 	} else {
 		s.logger.Debug().Msgf("Skipping docker config secret update: %v for namespace: %v", ips.Name, namespace)
 	}

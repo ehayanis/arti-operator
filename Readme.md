@@ -5,7 +5,7 @@ Creates Artifactory Docker registries and the users to access them based on inst
 In an `intranet` cluster, for the following Project resource :
 ```yaml
 ---
-apiVersion: "ca-gip.github.com/v1"
+apiVersion: "cagip.github.com/v1"
 kind: Project
 metadata:
   name: sampleorg-project1-development
@@ -45,17 +45,11 @@ make build
 ```
 The output binary will be called `build/artifactory-operator`.
 
-## Contributing
+## Versioning
 
-Each new commit should be versioned (see version.txt).
+Since version v1.24.0, we have decided to modify the naming of versions for ease of reading and understanding.
 
-version.txt should contain 3 digits (ex: 1.0.1).
-
-The **first digit** must be change for each **major** version with breaking change.
-
-The **second digit** is for **minor** version with no breaking change. 
-
-The **third digit** is for **patch** with no breaking change.
+Example: v1.24.0 means that the operator was developed for Kubernetes version 1.24 and that the last 0 corresponds to the various patches we have made to the operator.
 
 
 ## Testing locally
