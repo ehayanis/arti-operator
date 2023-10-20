@@ -1,7 +1,6 @@
 stages:
   - Menage
   - Dev
-  - Build
   - Promote
 
 Menage:
@@ -23,31 +22,13 @@ Build Dev:
     - docker build --build-arg HTTP_PROXY=http://$PROXY_RUNNER --build-arg HTTPS_PROXY=http://$PROXY_RUNNER --network=host -t $IMAGE_BASE_NAME:$(cat version.txt)-testing .
     - docker push $IMAGE_BASE_NAME:$(cat version.txt)-testing
 
-Build:
-  image: docker-remote.registry.saas.cagip.group.gca/docker:stable
-  stage: Build
-  variables:
-    IMAGE_BASE_NAME: silca-tools-docker-scratch-intranet.registry.saas.cagip.group.gca/artifactory-operator
-  only:
-    refs:
-      - master
-  except:
-    - tags
-  before_script:
-    - docker login -u silca-tools-docker-scratch-intranet -p $AD_PASSWD silca-tools-docker-scratch-intranet.registry.saas.cagip.group.gca
-  script:
-    - docker build --build-arg HTTP_PROXY=http://$PROXY_RUNNER --build-arg HTTPS_PROXY=http://$PROXY_RUNNER --network=host -t $IMAGE_BASE_NAME:$(cat version.txt)-master .
-    - docker push $IMAGE_BASE_NAME:$(cat version.txt)-master
-
 Promote Image:
   image: cagip-hub.registry.saas.cagip.group.gca/alpine-curl
   stage: Promote
   variables:
     HTTP_PROXY: http://$PROXY_RUNNER
     HTTPS_PROXY: http://$PROXY_RUNNER
-  only:
-    refs:
-      - stable
+  when: manual
   script:
     - |
-      curl -u "silca-tools-docker-scratch-intranet:$AD_PASSWD" -X POST "https://silca-tools-docker-scratch-intranet.registry.saas.cagip.group.gca/v2/promote" -H "Content-Type: application/json" -kv -d "{ \"targetRepo\":\"silca-tools-docker-stable-intranet\", \"dockerRepository\":\"artifactory-operator\", \"tag\":\"$(cat version.txt)-master\", \"targetTag\":\"$(cat version.txt)\" ,\"copy\":\"true\" }"
+      curl -u "silca-tools-docker-scratch-intranet:$AD_PASSWD" -X POST "https://silca-tools-docker-scratch-intranet.registry.saas.cagip.group.gca/v2/promote" -H "Content-Type: application/json" -kv -d "{ \"targetRepo\":\"silca-tools-docker-stable-intranet\", \"dockerRepository\":\"artifactory-operator\", \"tag\":\"$(cat version.txt)-testing\", \"targetTag\":\"$(cat version.txt)\" ,\"copy\":\"true\" }"
