@@ -61,3 +61,8 @@ spec:
                 secretKeyRef:
                   name: artifactory-operator-secret
                   key: artifactory_password
+            - name: ARTI_OP_EXTERNAL_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: artifactory-operator-secret
+                  key: external_api_token

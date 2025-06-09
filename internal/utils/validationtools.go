@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// CheckMandatoryParameters validates that a v1 Project resource has the required fields
 func CheckMandatoryParameters(project *v1.Project) error {
 	if strings.TrimSpace(project.Spec.Project) == "" {
 		return errors.New("Spec.Project empty.")
@@ -20,4 +21,24 @@ func CheckMandatoryParameters(project *v1.Project) error {
 	}
 
 	return nil
+}
+
+// CheckMandatoryParametersV2 validates that a v2 Project resource has the required fields
+// For v2, we only need tenant and project fields
+func CheckMandatoryParametersV2(project *v1.Project) error {
+	if strings.TrimSpace(project.Spec.Project) == "" {
+		return errors.New("Spec.Project empty.")
+	}
+
+	if strings.TrimSpace(project.Spec.Tenant) == "" {
+		return errors.New("Spec.Tenant empty.")
+	}
+
+	return nil
+}
+
+// IsV2Project determines if a Project resource is v2 based on its API version
+func IsV2Project(project *v1.Project) bool {
+	// Check if the APIVersion contains "v2"
+	return strings.Contains(project.APIVersion, "v2")
 }

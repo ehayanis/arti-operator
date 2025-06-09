@@ -30,3 +30,18 @@ data:
   # Prefix added to the name of Artifactory user Secrets.
   # Default value : 'artifactory-user'.
   # ARTI_OP_PASSWORDSTORE_SECRET_NAME_PREFIX: artifactory-user
+
+  # *** V2 Configuration ***
+
+  # Enable v2 functionality with external API integration
+  # Set to "true" to enable v2 functionality
+  ARTI_OP_ENABLE_V2: "true"
+
+  # The URL for the external API
+  # Default value: https://api-automation.cagip.gca.com/createorupdateapp
+  ARTI_OP_EXTERNAL_API_ENDPOINT: "https://api-automation.cagip.gca.com/createorupdateapp"
+
+  # Enable or disable external API calls
+  # Set to "false" to disable external API calls
+  # Default value: "true"
+  ARTI_OP_EXTERNAL_API_ENABLED: "true"
