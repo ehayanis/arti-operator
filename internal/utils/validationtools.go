@@ -2,8 +2,9 @@ package utils
 
 import (
 	"errors"
-	"github.com/ca-gip/kubi/pkg/apis/cagip/v1"
 	"strings"
+
+	v1 "github.com/ca-gip/kubi/pkg/apis/cagip/v1"
 )
 
 // CheckMandatoryParameters validates that a v1 Project resource has the required fields
@@ -39,6 +40,6 @@ func CheckMandatoryParametersV2(project *v1.Project) error {
 
 // IsV2Project determines if a Project resource is v2 based on its API version
 func IsV2Project(project *v1.Project) bool {
-	// Check if the APIVersion contains "v2"
-	return strings.Contains(project.APIVersion, "v2")
+	// Check if the APIVersion is exactly "cagip.github.com/v2"
+	return project.APIVersion == "cagip.github.com/v2"
 }
