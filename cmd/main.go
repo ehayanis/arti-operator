@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/ca-gip/artifactory-operator/internal/types"
 	v2types "github.com/ca-gip/artifactory-operator/internal/types/v2"
@@ -173,12 +174,29 @@ func WatchProjectsV2(operatorConfig *v2types.ArtifactoryOperatorConfigV2) cache.
 func projectUpdate(new interface{}, projectService *services.ProjectService) {
 	newProject := new.(*v1.Project)
 
-	// Log entry to this function
-	utils.Log.Info().Msgf("projectUpdate: Processing project %s with APIVersion: '%s'", newProject.Name, newProject.APIVersion)
+	// Log entry to this function with detailed information
+	utils.Log.Info().Msgf("projectUpdate: Processing project %s", newProject.Name)
+	utils.Log.Info().Msgf("projectUpdate: Project details - Name: %s, Namespace: %s, APIVersion: '%s', Kind: '%s'",
+		newProject.Name, newProject.Namespace, newProject.APIVersion, newProject.Kind)
+	utils.Log.Info().Msgf("projectUpdate: Project TypeMeta - APIVersion: '%s', Kind: '%s'",
+		newProject.TypeMeta.APIVersion, newProject.TypeMeta.Kind)
+	utils.Log.Info().Msgf("projectUpdate: Project ObjectMeta - Name: %s, Namespace: %s",
+		newProject.ObjectMeta.Name, newProject.ObjectMeta.Namespace)
+	utils.Log.Info().Msgf("projectUpdate: Project Spec - Tenant: %s, Project: %s, Environment: %s, Stages: %v",
+		newProject.Spec.Tenant, newProject.Spec.Project, newProject.Spec.Environment, newProject.Spec.Stages)
+
+	// Log the raw object for debugging
+	utils.Log.Info().Msgf("projectUpdate: Raw object type: %T", new)
 
 	// Check if this is a v2 project
 	isV2 := utils.IsV2Project(newProject)
 	utils.Log.Info().Msgf("projectUpdate: Project %s isV2Project result: %v", newProject.Name, isV2)
+
+	// TEMPORARY FIX: Force v2 for specific projects
+	if strings.Contains(newProject.Name, "secuv7") || strings.Contains(newProject.Spec.Project, "secuv7") {
+		utils.Log.Info().Msgf("projectUpdate: Forcing v2 for project %s because it contains 'secuv7'", newProject.Name)
+		isV2 = true
+	}
 
 	if isV2 {
 		// Use v2 validation
