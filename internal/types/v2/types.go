@@ -45,7 +45,8 @@ type ArtifactoryOperatorConfigV2 struct {
 	ArtifactoryServerToken        string
 	ProjectResyncPeriod           time.Duration
 	// V2-specific fields
-	ExternalAPI ExternalAPIConfig
+	ExternalAPI       ExternalAPIConfig
+	DockerRegistryURL string // Base URL for Docker registry
 }
 
 // LDAPGroups contains LDAP group information for different roles

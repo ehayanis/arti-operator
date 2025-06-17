@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -19,8 +20,11 @@ import (
 	"github.com/ca-gip/artifactory-operator/internal/utils"
 	v1 "github.com/ca-gip/kubi/pkg/apis/cagip/v1"
 	v12 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -276,6 +280,61 @@ func projectCreated(obj interface{}, projectService *services.ProjectService) {
 	}
 }
 
+// createDockerSecretV2 creates a Docker registry secret for v2 resources
+func createDockerSecretV2(project *v1.Project, operatorConfig *v2types.ArtifactoryOperatorConfigV2, kconfig *rest.Config) error {
+	logger := utils.Log.With().Str("service", "v2dockersecret").Logger()
+
+	// Create DockerConfigSecretsService
+	dockerConfigSecretsService := services.NewDockerConfigSecretsService(kconfig)
+
+	// Get Kubernetes client
+	coreClient, err := kubernetes.NewForConfig(kconfig)
+	if err != nil {
+		logger.Error().Msgf("Cannot get kubernetes core API client: %v", err)
+		return err
+	}
+
+	// Read username and password from artifactory-operator-secret
+	secret, err := coreClient.CoreV1().Secrets("kube-system").Get(context.TODO(), "artifactory-operator-secret", metav1.GetOptions{})
+	if err != nil {
+		logger.Error().Msgf("Cannot get artifactory-operator-secret: %v", err)
+		return err
+	}
+
+	// Use artifactory_password as both username and password
+	password := string(secret.Data["artifactory_password"])
+	username := "admin" // Default Artifactory admin username
+
+	// Construct URL
+	registryURL := fmt.Sprintf("%s-%s-docker-stable-intranet.%s",
+		project.Spec.Tenant,
+		project.Spec.Project,
+		operatorConfig.DockerRegistryURL)
+
+	// Create registry info
+	registry := types.DockerConfigRegistryInfo{
+		Username: username,
+		Password: password,
+		Url:      registryURL,
+	}
+
+	// Create secret contents
+	secretContents := &types.DockerConfigSecret{
+		Name:       "project-registries",
+		Registries: []types.DockerConfigRegistryInfo{registry},
+	}
+
+	// Create or update secret
+	logger.Info().Msgf("Creating docker config secret: project-registries for namespace: %s", project.Name)
+	_, err = dockerConfigSecretsService.CreateOrUpdateDockerConfigSecret(project.Name, secretContents)
+	if err != nil {
+		logger.Error().Msgf("Couldn't create DockerConfig secret: %v", err)
+		return err
+	}
+
+	return nil
+}
+
 // projectUpdateV2 handles updates to Project resources for v2
 func projectUpdateV2(new interface{}, projectService *services.ProjectService) {
 	newProject := new.(*v1.Project)
@@ -299,7 +358,13 @@ func projectUpdateV2(new interface{}, projectService *services.ProjectService) {
 			}
 		}
 
-		// Skip Artifactory operations for v2 resources
+		// Create Docker registry secret for v2 resources
+		kconfig, _ := config.InstanciateKubernetesClients()
+		operatorConfig, _ := config.LoadConfigV2()
+		err = createDockerSecretV2(newProject, operatorConfig, kconfig)
+		if err != nil {
+			utils.Log.Error().Msgf("Error creating Docker registry secret for project %s: %v", newProject.Name, err)
+		}
 		return
 	} else {
 		// Use v1 validation for backward compatibility
@@ -340,7 +405,13 @@ func projectCreatedV2(obj interface{}, projectService *services.ProjectService) 
 			}
 		}
 
-		// Skip Artifactory operations for v2 resources
+		// Create Docker registry secret for v2 resources
+		kconfig, _ := config.InstanciateKubernetesClients()
+		operatorConfig, _ := config.LoadConfigV2()
+		err = createDockerSecretV2(project, operatorConfig, kconfig)
+		if err != nil {
+			utils.Log.Error().Msgf("Error creating Docker registry secret for project %s: %v", project.Name, err)
+		}
 		return
 	} else {
 		// Use v1 validation for backward compatibility

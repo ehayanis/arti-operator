@@ -210,6 +210,13 @@ func LoadConfigV2() (*v2.ArtifactoryOperatorConfigV2, error) {
 			Enabled:  true,
 			Endpoint: "https://api-automation.cagip.gca.com/createorupdateapp",
 		},
+		DockerRegistryURL: "registry-iso-prd.saas-cagip.gca", // Default value
+	}
+
+	// Check if Docker registry URL is overridden
+	dockerRegistryURL, ok := os.LookupEnv("ARTI_OP_URL")
+	if ok && strings.TrimSpace(dockerRegistryURL) != "" {
+		result.DockerRegistryURL = dockerRegistryURL
 	}
 
 	// Check if external API is enabled
