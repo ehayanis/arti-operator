@@ -281,7 +281,8 @@ func projectUpdateV2(new interface{}, projectService *services.ProjectService) {
 	newProject := new.(*v1.Project)
 
 	// Check if this is a v2 project
-	if utils.IsV2Project(newProject) {
+	isV2 := utils.IsV2Project(newProject)
+	if isV2 {
 		// Use v2 validation
 		err := utils.CheckMandatoryParametersV2(newProject)
 		if err != nil {
@@ -291,12 +292,15 @@ func projectUpdateV2(new interface{}, projectService *services.ProjectService) {
 
 		// Call external API if enabled
 		if externalAPIService != nil {
+			utils.Log.Info().Msgf("Processing v2 project %s: Calling external API only", newProject.Name)
 			err := externalAPIService.CallExternalAPI(newProject.Spec.Tenant, newProject.Spec.Project)
 			if err != nil {
 				utils.Log.Error().Msgf("Error calling external API for project %s: %v", newProject.Name, err)
-				// Continue with Artifactory operations even if API call fails
 			}
 		}
+
+		// Skip Artifactory operations for v2 resources
+		return
 	} else {
 		// Use v1 validation for backward compatibility
 		err := utils.CheckMandatoryParameters(newProject)
@@ -304,12 +308,12 @@ func projectUpdateV2(new interface{}, projectService *services.ProjectService) {
 			utils.Log.Error().Msgf("Error, project resource does not have mandatory parameter to fill Artifactory: %v", err)
 			return
 		}
-	}
 
-	// Always handle the project with Artifactory for both v1 and v2
-	err := projectService.HandleProject(newProject)
-	if err != nil {
-		utils.Log.Error().Msgf("Error handling project %s: %v", newProject.Name, err)
+		// Only handle v1 projects with Artifactory
+		err = projectService.HandleProject(newProject)
+		if err != nil {
+			utils.Log.Error().Msgf("Error handling project %s: %v", newProject.Name, err)
+		}
 	}
 }
 
@@ -318,7 +322,8 @@ func projectCreatedV2(obj interface{}, projectService *services.ProjectService) 
 	project := obj.(*v1.Project)
 
 	// Check if this is a v2 project
-	if utils.IsV2Project(project) {
+	isV2 := utils.IsV2Project(project)
+	if isV2 {
 		// Use v2 validation
 		err := utils.CheckMandatoryParametersV2(project)
 		if err != nil {
@@ -328,12 +333,15 @@ func projectCreatedV2(obj interface{}, projectService *services.ProjectService) 
 
 		// Call external API if enabled
 		if externalAPIService != nil {
+			utils.Log.Info().Msgf("Processing v2 project %s: Calling external API only", project.Name)
 			err := externalAPIService.CallExternalAPI(project.Spec.Tenant, project.Spec.Project)
 			if err != nil {
 				utils.Log.Error().Msgf("Error calling external API for project %s: %v", project.Name, err)
-				// Continue with Artifactory operations even if API call fails
 			}
 		}
+
+		// Skip Artifactory operations for v2 resources
+		return
 	} else {
 		// Use v1 validation for backward compatibility
 		err := utils.CheckMandatoryParameters(project)
@@ -341,11 +349,11 @@ func projectCreatedV2(obj interface{}, projectService *services.ProjectService) 
 			utils.Log.Error().Msgf("Error, project resource does not have mandatory parameter to fill Artifactory: %v", err)
 			return
 		}
-	}
 
-	// Always handle the project with Artifactory for both v1 and v2
-	err := projectService.HandleProject(project)
-	if err != nil {
-		utils.Log.Error().Msgf("Error handling project %s: %v", project.Name, err)
+		// Only handle v1 projects with Artifactory
+		err = projectService.HandleProject(project)
+		if err != nil {
+			utils.Log.Error().Msgf("Error handling project %s: %v", project.Name, err)
+		}
 	}
 }
