@@ -68,7 +68,10 @@ func NewProjectService(operatorConfig *types.ArtifactoryOperatorConfig,
 }
 
 func (s *ProjectService) HandleProject(project *kubiv1.Project) error {
-	repos, users, err := s.createArtifactoryResources(project)
+	// Check if this is a v2 project
+	isV2 := utils.IsV2Project(project)
+
+	repos, users, err := s.createArtifactoryResources(project, isV2)
 	if err != nil {
 		return err
 	}
@@ -146,7 +149,7 @@ func registryUrl(artifactoryHostBase, registryName string) string {
 	return registryName + "." + artifactoryHostBase
 }
 
-func (s *ProjectService) createArtifactoryResources(project *kubiv1.Project) ([]string, *types.ArtifactoryRepoUsers, error) {
+func (s *ProjectService) createArtifactoryResources(project *kubiv1.Project, isV2 bool) ([]string, *types.ArtifactoryRepoUsers, error) {
 
 	curTime := time.Now()
 	coreClient, err := kubernetes.NewForConfig(s.artifactoryService.PasswordStoreService.clientConfig)
@@ -156,7 +159,7 @@ func (s *ProjectService) createArtifactoryResources(project *kubiv1.Project) ([]
 		return nil, nil, err
 	}
 
-	fieldsArtifactory, err := s.generateArtifactoryFields(project)
+	fieldsArtifactory, err := s.generateArtifactoryFields(project, isV2)
 	if err != nil {
 		s.logger.Error().Msgf("Couldn't read Project fields for project %v: %v", project.Spec, err)
 		return nil, nil, err
@@ -266,7 +269,7 @@ func (s *ProjectService) createArtifactoryResources(project *kubiv1.Project) ([]
 	return repos, users, nil
 }
 
-func (s *ProjectService) generateArtifactoryFields(project *kubiv1.Project) (*types.ArtifactoryInformation, error) {
+func (s *ProjectService) generateArtifactoryFields(project *kubiv1.Project, isV2 bool) (*types.ArtifactoryInformation, error) {
 	if strings.TrimSpace(project.Spec.Project) == "" {
 		return nil, errors.New("Spec.Project empty.")
 	}
@@ -275,15 +278,23 @@ func (s *ProjectService) generateArtifactoryFields(project *kubiv1.Project) (*ty
 		return nil, errors.New("Spec.Tenant empty.")
 	}
 
-	if len(project.Spec.Stages) == 0 {
+	// For v2 resources, we don't require stages
+	if !isV2 && len(project.Spec.Stages) == 0 {
 		return nil, errors.New("Spec.Stages empty.")
+	}
+
+	// Set default stages for v2 resources if they don't have any
+	stages := project.Spec.Stages
+	if isV2 && len(stages) == 0 {
+		s.logger.Info().Msgf("Setting default stages for v2 project %s", project.Name)
+		stages = []string{"stable"}
 	}
 
 	projectNameWithoutTenant := strings.TrimPrefix(project.Spec.Project, project.Spec.Tenant+"-")
 	fieldsArtifactory := &types.ArtifactoryInformation{
 		Tenant:      project.Spec.Tenant,
 		ProjectName: projectNameWithoutTenant,
-		Stages:      project.Spec.Stages,
+		Stages:      stages,
 		Location:    s.clusterLocation,
 		Description: utils.ArtifactoryDescription,
 		Environment: project.Spec.Environment,
