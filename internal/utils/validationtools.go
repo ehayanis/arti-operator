@@ -40,9 +40,15 @@ func CheckMandatoryParametersV2(project *v1.Project) error {
 
 // IsV2Project determines if a Project resource is v2 based on its API version
 func IsV2Project(project *v1.Project) bool {
-	// Log the API version for debugging
-	Log.Debug().Msgf("Project %s has APIVersion: '%s'", project.Name, project.APIVersion)
+	// Always log at Info level to ensure visibility
+	Log.Info().Msgf("IsV2Project: Project %s has APIVersion: '%s'", project.Name, project.APIVersion)
 
-	// Check if the APIVersion contains "v2" (more flexible matching)
-	return strings.Contains(project.APIVersion, "v2")
+	// Check for v2 in multiple ways to be more robust
+	isV2 := strings.Contains(project.APIVersion, "v2") ||
+		strings.Contains(project.APIVersion, "V2") ||
+		project.APIVersion == "cagip.github.com/v2"
+
+	Log.Info().Msgf("IsV2Project: Project %s is v2: %v", project.Name, isV2)
+
+	return isV2
 }

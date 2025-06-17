@@ -173,8 +173,14 @@ func WatchProjectsV2(operatorConfig *v2types.ArtifactoryOperatorConfigV2) cache.
 func projectUpdate(new interface{}, projectService *services.ProjectService) {
 	newProject := new.(*v1.Project)
 
+	// Log entry to this function
+	utils.Log.Info().Msgf("projectUpdate: Processing project %s with APIVersion: '%s'", newProject.Name, newProject.APIVersion)
+
 	// Check if this is a v2 project
-	if utils.IsV2Project(newProject) {
+	isV2 := utils.IsV2Project(newProject)
+	utils.Log.Info().Msgf("projectUpdate: Project %s isV2Project result: %v", newProject.Name, isV2)
+
+	if isV2 {
 		// Use v2 validation
 		err := utils.CheckMandatoryParametersV2(newProject)
 		if err != nil {
@@ -211,8 +217,14 @@ func projectUpdate(new interface{}, projectService *services.ProjectService) {
 func projectCreated(obj interface{}, projectService *services.ProjectService) {
 	project := obj.(*v1.Project)
 
+	// Log entry to this function
+	utils.Log.Info().Msgf("projectCreated: Processing project %s with APIVersion: '%s'", project.Name, project.APIVersion)
+
 	// Check if this is a v2 project
-	if utils.IsV2Project(project) {
+	isV2 := utils.IsV2Project(project)
+	utils.Log.Info().Msgf("projectCreated: Project %s isV2Project result: %v", project.Name, isV2)
+
+	if isV2 {
 		// Use v2 validation
 		err := utils.CheckMandatoryParametersV2(project)
 		if err != nil {
