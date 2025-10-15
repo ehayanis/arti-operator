@@ -95,6 +95,56 @@ kubectl apply -f deployment/*
 |  **LDAP_CUSTOMER_OPS_GROUPBASE** |  | `yes` | - |
 |  **SHARED_REPOSITORY** | *Activate shared repository feature* | `yes` | - |
 
+## V2 Configuration
+
+Version 2 of the operator adds support for making direct calls to an external API when processing Project CRDs. This functionality is controlled by the following environment variables:
+
+| Name                            | Description                          | Example                       | Mandatory | Default      |
+| :--------------                 | :-----------------------------:      | ----------------------------: | ---------:| ----------:  |
+|  **ARTI_OP_ENABLE_V2**          |  *Enable v2 functionality with external API integration* | `true` | `no`     | `false`     |
+|  **ARTI_OP_EXTERNAL_API_ENDPOINT** | *The URL for the external API* | `https://api-automation.cagip.gca.com/createorupdateapp` | `no` | `https://api-automation.cagip.gca.com/createorupdateapp` |
+|  **ARTI_OP_EXTERNAL_API_ENABLED** | *Enable or disable external API calls* | `true` | `no` | `true` |
+|  **ARTI_OP_EXTERNAL_API_TOKEN** | *Authentication token for the external API* | `dsfqlfn,qpfn,mf,fqfqd` | `yes` (if v2 enabled) | - |
+
+The external API token should be stored in the Secret and referenced in the Deployment as shown in the example manifests.
+
+## How V2 Works
+
+When v2 is enabled, the operator will:
+
+1. Check if a Project resource is v2 based on its API version
+2. For v2 Projects, it will:
+   - Validate that the Project has the required fields (tenant and project)
+   - Make a call to the external API with the tenant and project values
+   - Continue with the normal Artifactory operations for backward compatibility
+
+For v1 Projects, the operator will continue to work as before, with no changes to the existing functionality.
+
+### Example V2 Project Resource
+
+Here's an example of a v2 Project resource:
+
+```yaml
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cats-secu-development
+---
+apiVersion: "cagip.github.com/v2"
+kind: Project
+metadata:
+  name: cats-secu-development
+spec:
+    tenant: cats
+    environment: development
+    project: secu
+```
+
+Note that for v2 Projects, only the `tenant` and `project` fields are required. The `environment` field is optional but recommended for consistency with v1 Projects.
+
+A test file with this example is available at `tests/project-test-resource-v2.yaml`.
+
 # Required permissions
 
 ## On Kubernetes

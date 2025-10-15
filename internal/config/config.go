@@ -9,24 +9,23 @@ import (
 	"time"
 
 	"github.com/ca-gip/artifactory-operator/internal/types"
+	v2 "github.com/ca-gip/artifactory-operator/internal/types/v2"
 	"github.com/ca-gip/artifactory-operator/internal/utils"
 )
 
+// LoadConfig loads configuration from environment variables
 func LoadConfig() (*types.ArtifactoryOperatorConfig, error) {
 	result := &types.ArtifactoryOperatorConfig{
 		PasswordStoreBackendNamespace: utils.DefaultPasswordStoreBackendNamespace,
 		PasswordStoreSecretNamePrefix: utils.DefaultPasswordStoreSecretNamePrefix,
 	}
-
 	// TODO : passer par la lib https://github.com/go-ozzo/ozzo-validation pour valider la conf
-
 	clusterLocation, ok := os.LookupEnv("ARTI_OP_CLUSTER_LOCATION")
 	if ok {
 		clusterLocation, err := validateClusterLocation(clusterLocation)
 		if err != nil {
 			return nil, err
 		}
-
 		result.ClusterLocation = clusterLocation
 	} else {
 		err := errors.New("ARTI_OP_CLUSTER_LOCATION is required.")
@@ -180,6 +179,56 @@ func LoadConfig() (*types.ArtifactoryOperatorConfig, error) {
 		} else {
 			result.ProjectResyncPeriod = time.Second * time.Duration(intProjectResyncPeriod)
 		}
+	}
+
+	return result, nil
+}
+
+// LoadConfigV2 loads configuration for v2 from environment variables
+func LoadConfigV2() (*v2.ArtifactoryOperatorConfigV2, error) {
+	// First load the v1 config
+	v1Config, err := LoadConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	// Create v2 config with v1 values
+	result := &v2.ArtifactoryOperatorConfigV2{
+		ClusterLocation:               v1Config.ClusterLocation,
+		PasswordStoreBackendNamespace: v1Config.PasswordStoreBackendNamespace,
+		PasswordStoreSecretNamePrefix: v1Config.PasswordStoreSecretNamePrefix,
+		ArtifactoryServerUrl:          v1Config.ArtifactoryServerUrl,
+		ArtifactoryServerUser:         v1Config.ArtifactoryServerUser,
+		VaultServerToken:              v1Config.VaultServerToken,
+		VaultServerUrl:                v1Config.VaultServerUrl,
+		ClusterDNSSubdomain:           v1Config.ClusterDNSSubdomain,
+		LDAPGroups:                    v2.LDAPGroups(v1Config.LDAPGroups),
+		SharedRepository:              v1Config.SharedRepository,
+		ArtifactoryServerToken:        v1Config.ArtifactoryServerToken,
+		ProjectResyncPeriod:           v1Config.ProjectResyncPeriod,
+		ExternalAPI: v2.ExternalAPIConfig{
+			Enabled:  true,
+			Endpoint: "https://api-automation.cagip.gca.com/createorupdateapp",
+		},
+		DockerRegistryURL: "registry-iso-prd.saas-cagip.gca", // Default value
+	}
+
+	// Check if Docker registry URL is overridden
+	dockerRegistryURL, ok := os.LookupEnv("ARTI_OP_URL")
+	if ok && strings.TrimSpace(dockerRegistryURL) != "" {
+		result.DockerRegistryURL = dockerRegistryURL
+	}
+
+	// Check if external API is enabled
+	externalAPIEnabled, ok := os.LookupEnv("ARTI_OP_EXTERNAL_API_ENABLED")
+	if ok && strings.ToLower(strings.TrimSpace(externalAPIEnabled)) == "false" {
+		result.ExternalAPI.Enabled = false
+	}
+
+	// Check if external API endpoint is overridden
+	externalAPIEndpoint, ok := os.LookupEnv("ARTI_OP_EXTERNAL_API_ENDPOINT")
+	if ok && strings.TrimSpace(externalAPIEndpoint) != "" {
+		result.ExternalAPI.Endpoint = externalAPIEndpoint
 	}
 
 	return result, nil

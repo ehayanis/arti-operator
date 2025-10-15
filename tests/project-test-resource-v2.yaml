@@ -1,0 +1,14 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cats-secu-development
+---
+apiVersion: "cagip.github.com/v2"
+kind: Project
+metadata:
+  name: cats-secu-development
+spec:
+    tenant: cats
+    environment: development
+    project: secu

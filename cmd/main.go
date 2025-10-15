@@ -1,11 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/ca-gip/artifactory-operator/internal/types"
+	v2types "github.com/ca-gip/artifactory-operator/internal/types/v2"
 	"github.com/rs/zerolog"
 	"goji.io"
 	"goji.io/pat"
@@ -17,9 +20,18 @@ import (
 	"github.com/ca-gip/artifactory-operator/internal/utils"
 	v1 "github.com/ca-gip/kubi/pkg/apis/cagip/v1"
 	v12 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
+)
+
+// Global variables for v2 support
+var (
+	useV2              bool
+	externalAPIService *services.ExternalAPIService
 )
 
 func debugHandler(next http.Handler) http.Handler {
@@ -33,7 +45,6 @@ func debugHandler(next http.Handler) http.Handler {
 }
 
 func main() {
-
 	// Get Level debug configurable if DEBUG env var exist (don't care about the value)
 	_, debug := os.LookupEnv("DEBUG")
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
@@ -41,11 +52,35 @@ func main() {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	}
 
-	operatorConfig, err := config.LoadConfig()
+	// Check if v2 is enabled
+	v2Enabled, _ := os.LookupEnv("ARTI_OP_ENABLE_V2")
+	useV2 = v2Enabled == "true"
 
-	if err != nil {
-		fmt.Println("Couldn't load operator configuration:", err)
-		os.Exit(1)
+	var operatorConfig *types.ArtifactoryOperatorConfig
+	var operatorConfigV2 *v2types.ArtifactoryOperatorConfigV2
+	var err error
+
+	if useV2 {
+		// Load v2 configuration
+		operatorConfigV2, err = config.LoadConfigV2()
+		if err != nil {
+			fmt.Println("Couldn't load v2 operator configuration:", err)
+			os.Exit(1)
+		}
+
+		// For backward compatibility, also load v1 configuration
+		operatorConfig, err = config.LoadConfig()
+		if err != nil {
+			fmt.Println("Couldn't load v1 operator configuration:", err)
+			os.Exit(1)
+		}
+	} else {
+		// Load only v1 configuration
+		operatorConfig, err = config.LoadConfig()
+		if err != nil {
+			fmt.Println("Couldn't load operator configuration:", err)
+			os.Exit(1)
+		}
 	}
 
 	mux := goji.NewMux()
@@ -54,14 +89,17 @@ func main() {
 
 	go http.ListenAndServe(":8080", mux)
 
-	WatchProjects(operatorConfig)
+	if useV2 {
+		WatchProjectsV2(operatorConfigV2)
+	} else {
+		WatchProjects(operatorConfig)
+	}
 }
 
 // WatchProjects is going to instanciate Kubernetes Client and Services (Project, Artifactory and Xray).
 // It is going to listen the Projects CRD (on creation and updates) and create or update resources
 // (artifactory client, vault secrets) through their services
 func WatchProjects(operatorConfig *types.ArtifactoryOperatorConfig) cache.Store {
-
 	logger := utils.Log.With().Str("service", "watcher").Logger()
 
 	kconfig, v3 := config.InstanciateKubernetesClients()
@@ -96,24 +134,297 @@ func WatchProjects(operatorConfig *types.ArtifactoryOperatorConfig) cache.Store 
 	return store
 }
 
+// WatchProjectsV2 is similar to WatchProjects but uses v2 configuration and services
+func WatchProjectsV2(operatorConfig *v2types.ArtifactoryOperatorConfigV2) cache.Store {
+	logger := utils.Log.With().Str("service", "watcher").Logger()
+
+	kconfig, v3 := config.InstanciateKubernetesClients()
+
+	projectService, apiService := config.InstanciateServicesV2(kconfig, operatorConfig, logger)
+	externalAPIService = apiService // Store in global variable for access in handlers
+
+	watchlist := cache.NewListWatchFromClient(v3.CagipV1().RESTClient(), "projects", v12.NamespaceAll, fields.Everything())
+
+	store, controller := cache.NewInformer(watchlist, &v1.Project{}, operatorConfig.ProjectResyncPeriod, cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+			projectCreatedV2(obj, projectService)
+		},
+		UpdateFunc: func(old interface{}, new interface{}) {
+			projectUpdateV2(new, projectService)
+		},
+	})
+
+	logger.Info().Msgf("[Operator V2 configuration] ClusterLocation:%v,"+
+		"PasswordBackendNamespace:%v,"+
+		"ArtifactoryServerUrl:%v,"+
+		"ArtifactoryServerUser:%v,"+
+		"VaultServerUrl:%v,"+
+		"ExternalAPI.Enabled:%v,"+
+		"ExternalAPI.Endpoint:%v",
+		operatorConfig.ClusterLocation,
+		operatorConfig.PasswordStoreBackendNamespace,
+		operatorConfig.ArtifactoryServerUrl,
+		operatorConfig.ArtifactoryServerUser,
+		operatorConfig.VaultServerUrl,
+		operatorConfig.ExternalAPI.Enabled,
+		operatorConfig.ExternalAPI.Endpoint)
+
+	controller.Run(wait.NeverStop)
+	logger.Info().Msgf("Controller exited, terminating.")
+
+	return store
+}
+
 func projectUpdate(new interface{}, projectService *services.ProjectService) {
 	newProject := new.(*v1.Project)
-	err := utils.CheckMandatoryParameters(newProject)
-	if err != nil {
-		utils.Log.Error().Msgf("Error, project resource does not have mandatory parameter to fill Artifactory: %v", err)
-		return
-	}
-	err = projectService.HandleProject(newProject)
 
+	// Log entry to this function with detailed information
+	utils.Log.Info().Msgf("projectUpdate: Processing project %s", newProject.Name)
+	utils.Log.Info().Msgf("projectUpdate: Project details - Name: %s, Namespace: %s, APIVersion: '%s', Kind: '%s'",
+		newProject.Name, newProject.Namespace, newProject.APIVersion, newProject.Kind)
+	utils.Log.Info().Msgf("projectUpdate: Project TypeMeta - APIVersion: '%s', Kind: '%s'",
+		newProject.TypeMeta.APIVersion, newProject.TypeMeta.Kind)
+	utils.Log.Info().Msgf("projectUpdate: Project ObjectMeta - Name: %s, Namespace: %s",
+		newProject.ObjectMeta.Name, newProject.ObjectMeta.Namespace)
+	utils.Log.Info().Msgf("projectUpdate: Project Spec - Tenant: %s, Project: %s, Environment: %s, Stages: %v",
+		newProject.Spec.Tenant, newProject.Spec.Project, newProject.Spec.Environment, newProject.Spec.Stages)
+
+	// Log the raw object for debugging
+	utils.Log.Info().Msgf("projectUpdate: Raw object type: %T", new)
+
+	// Check if this is a v2 project
+	isV2 := utils.IsV2Project(newProject)
+	utils.Log.Info().Msgf("projectUpdate: Project %s isV2Project result: %v", newProject.Name, isV2)
+
+	// TEMPORARY FIX: Force v2 for specific projects
+	if strings.Contains(newProject.Name, "secuv7") || strings.Contains(newProject.Spec.Project, "secuv7") {
+		utils.Log.Info().Msgf("projectUpdate: Forcing v2 for project %s because it contains 'secuv7'", newProject.Name)
+		isV2 = true
+	}
+
+	if isV2 {
+		// Use v2 validation
+		err := utils.CheckMandatoryParametersV2(newProject)
+		if err != nil {
+			utils.Log.Error().Msgf("Error, v2 project resource does not have mandatory parameters: %v", err)
+			return
+		}
+
+		// Call external API if enabled and available
+		if useV2 && externalAPIService != nil {
+			err := externalAPIService.CallExternalAPI(newProject.Spec.Tenant, newProject.Spec.Project)
+			if err != nil {
+				utils.Log.Error().Msgf("Error calling external API for project %s: %v", newProject.Name, err)
+				// Continue with Artifactory operations even if API call fails
+			}
+		} else {
+			utils.Log.Warn().Msgf("Received v2 project but v2 functionality is not enabled or external API service is not available. Project: %s", newProject.Name)
+		}
+	} else {
+		// Use v1 validation for v1 projects
+		err := utils.CheckMandatoryParameters(newProject)
+		if err != nil {
+			utils.Log.Error().Msgf("Error, project resource does not have mandatory parameter to fill Artifactory: %v", err)
+			return
+		}
+	}
+
+	// Always handle the project with Artifactory for both v1 and v2
+	err := projectService.HandleProject(newProject)
+	if err != nil {
+		utils.Log.Error().Msgf("Error handling project %s: %v", newProject.Name, err)
+	}
 }
 
 func projectCreated(obj interface{}, projectService *services.ProjectService) {
 	project := obj.(*v1.Project)
-	err := utils.CheckMandatoryParameters(project)
-	if err != nil {
-		utils.Log.Error().Msgf("Error, project resource does not have mandatory parameter to fill Artifactory: %v", err)
-		return
+
+	// Log entry to this function
+	utils.Log.Info().Msgf("projectCreated: Processing project %s with APIVersion: '%s'", project.Name, project.APIVersion)
+
+	// Check if this is a v2 project
+	isV2 := utils.IsV2Project(project)
+	utils.Log.Info().Msgf("projectCreated: Project %s isV2Project result: %v", project.Name, isV2)
+
+	if isV2 {
+		// Use v2 validation
+		err := utils.CheckMandatoryParametersV2(project)
+		if err != nil {
+			utils.Log.Error().Msgf("Error, v2 project resource does not have mandatory parameters: %v", err)
+			return
+		}
+
+		// Call external API if enabled and available
+		if useV2 && externalAPIService != nil {
+			err := externalAPIService.CallExternalAPI(project.Spec.Tenant, project.Spec.Project)
+			if err != nil {
+				utils.Log.Error().Msgf("Error calling external API for project %s: %v", project.Name, err)
+				// Continue with Artifactory operations even if API call fails
+			}
+		} else {
+			utils.Log.Warn().Msgf("Received v2 project but v2 functionality is not enabled or external API service is not available. Project: %s", project.Name)
+		}
+	} else {
+		// Use v1 validation for v1 projects
+		err := utils.CheckMandatoryParameters(project)
+		if err != nil {
+			utils.Log.Error().Msgf("Error, project resource does not have mandatory parameter to fill Artifactory: %v", err)
+			return
+		}
 	}
 
-	err = projectService.HandleProject(project)
+	// Always handle the project with Artifactory for both v1 and v2
+	err := projectService.HandleProject(project)
+	if err != nil {
+		utils.Log.Error().Msgf("Error handling project %s: %v", project.Name, err)
+	}
+}
+
+// createDockerSecretV2 creates a Docker registry secret for v2 resources
+func createDockerSecretV2(project *v1.Project, operatorConfig *v2types.ArtifactoryOperatorConfigV2, kconfig *rest.Config) error {
+	logger := utils.Log.With().Str("service", "v2dockersecret").Logger()
+
+	// Create DockerConfigSecretsService
+	dockerConfigSecretsService := services.NewDockerConfigSecretsService(kconfig)
+
+	// Get Kubernetes client
+	coreClient, err := kubernetes.NewForConfig(kconfig)
+	if err != nil {
+		logger.Error().Msgf("Cannot get kubernetes core API client: %v", err)
+		return err
+	}
+
+	// Read username and password from artifactory-operator-secret
+	secret, err := coreClient.CoreV1().Secrets("kube-system").Get(context.TODO(), "artifactory-operator-secret", metav1.GetOptions{})
+	if err != nil {
+		logger.Error().Msgf("Cannot get artifactory-operator-secret: %v", err)
+		return err
+	}
+
+	// Use artifactory_password as both username and password
+	password := string(secret.Data["artifactory_password"])
+	username := "admin" // Default Artifactory admin username
+
+	// Construct URL
+	registryURL := fmt.Sprintf("%s-%s-docker-stable-intranet.%s",
+		project.Spec.Tenant,
+		project.Spec.Project,
+		operatorConfig.DockerRegistryURL)
+
+	// Create registry info
+	registry := types.DockerConfigRegistryInfo{
+		Username: username,
+		Password: password,
+		Url:      registryURL,
+	}
+
+	// Create secret contents
+	secretContents := &types.DockerConfigSecret{
+		Name:       "project-registries",
+		Registries: []types.DockerConfigRegistryInfo{registry},
+	}
+
+	// Create or update secret
+	logger.Info().Msgf("Creating docker config secret: project-registries for namespace: %s", project.Name)
+	_, err = dockerConfigSecretsService.CreateOrUpdateDockerConfigSecret(project.Name, secretContents)
+	if err != nil {
+		logger.Error().Msgf("Couldn't create DockerConfig secret: %v", err)
+		return err
+	}
+
+	return nil
+}
+
+// projectUpdateV2 handles updates to Project resources for v2
+func projectUpdateV2(new interface{}, projectService *services.ProjectService) {
+	newProject := new.(*v1.Project)
+
+	// Check if this is a v2 project
+	isV2 := utils.IsV2Project(newProject)
+	if isV2 {
+		// Use v2 validation
+		err := utils.CheckMandatoryParametersV2(newProject)
+		if err != nil {
+			utils.Log.Error().Msgf("Error, v2 project resource does not have mandatory parameters: %v", err)
+			return
+		}
+
+		// Call external API if enabled
+		if externalAPIService != nil {
+			utils.Log.Info().Msgf("Processing v2 project %s: Calling external API only", newProject.Name)
+			err := externalAPIService.CallExternalAPI(newProject.Spec.Tenant, newProject.Spec.Project)
+			if err != nil {
+				utils.Log.Error().Msgf("Error calling external API for project %s: %v", newProject.Name, err)
+			}
+		}
+
+		// Create Docker registry secret for v2 resources
+		kconfig, _ := config.InstanciateKubernetesClients()
+		operatorConfig, _ := config.LoadConfigV2()
+		err = createDockerSecretV2(newProject, operatorConfig, kconfig)
+		if err != nil {
+			utils.Log.Error().Msgf("Error creating Docker registry secret for project %s: %v", newProject.Name, err)
+		}
+		return
+	} else {
+		// Use v1 validation for backward compatibility
+		err := utils.CheckMandatoryParameters(newProject)
+		if err != nil {
+			utils.Log.Error().Msgf("Error, project resource does not have mandatory parameter to fill Artifactory: %v", err)
+			return
+		}
+
+		// Only handle v1 projects with Artifactory
+		err = projectService.HandleProject(newProject)
+		if err != nil {
+			utils.Log.Error().Msgf("Error handling project %s: %v", newProject.Name, err)
+		}
+	}
+}
+
+// projectCreatedV2 handles creation of Project resources for v2
+func projectCreatedV2(obj interface{}, projectService *services.ProjectService) {
+	project := obj.(*v1.Project)
+
+	// Check if this is a v2 project
+	isV2 := utils.IsV2Project(project)
+	if isV2 {
+		// Use v2 validation
+		err := utils.CheckMandatoryParametersV2(project)
+		if err != nil {
+			utils.Log.Error().Msgf("Error, v2 project resource does not have mandatory parameters: %v", err)
+			return
+		}
+
+		// Call external API if enabled
+		if externalAPIService != nil {
+			utils.Log.Info().Msgf("Processing v2 project %s: Calling external API only", project.Name)
+			err := externalAPIService.CallExternalAPI(project.Spec.Tenant, project.Spec.Project)
+			if err != nil {
+				utils.Log.Error().Msgf("Error calling external API for project %s: %v", project.Name, err)
+			}
+		}
+
+		// Create Docker registry secret for v2 resources
+		kconfig, _ := config.InstanciateKubernetesClients()
+		operatorConfig, _ := config.LoadConfigV2()
+		err = createDockerSecretV2(project, operatorConfig, kconfig)
+		if err != nil {
+			utils.Log.Error().Msgf("Error creating Docker registry secret for project %s: %v", project.Name, err)
+		}
+		return
+	} else {
+		// Use v1 validation for backward compatibility
+		err := utils.CheckMandatoryParameters(project)
+		if err != nil {
+			utils.Log.Error().Msgf("Error, project resource does not have mandatory parameter to fill Artifactory: %v", err)
+			return
+		}
+
+		// Only handle v1 projects with Artifactory
+		err = projectService.HandleProject(project)
+		if err != nil {
+			utils.Log.Error().Msgf("Error handling project %s: %v", project.Name, err)
+		}
+	}
 }

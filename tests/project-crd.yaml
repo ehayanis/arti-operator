@@ -65,6 +65,66 @@ spec:
         type: string
         description: The refering entity ( LDAP group for the moment )
         jsonPath: .spec.sourceEntity
+  - name: v2
+    served: true
+    storage: false
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            required:
+            - project
+            - tenant
+            properties:
+              whitelistAddresses:
+                type: array
+                items:
+                  type: string
+              tenant:
+                type: string
+              environment:
+                type: string
+                enum:
+                - development
+                - integration
+                - production
+                - preproduction
+                - uat
+              project:
+                type: string
+              stages:
+                type: array
+                items:
+                  type: string
+                  enum:
+                  - scratch
+                  - staging
+                  - stable
+              sourceEntity:
+                type: string
+    additionalPrinterColumns:
+      - name: Tenant
+        type: string
+        description: The customer aka company owning the cluster
+        jsonPath: .spec.tenant
+      - name: Environment
+        type: string
+        description: The environment for this namespace
+        jsonPath: .spec.environment
+      - name: Project
+        type: string
+        description: The project name ( without environment )
+        jsonPath: .spec.project
+      - name: Stages
+        type: string
+        description: Stages allowed for this project, can be mapped to registry or CI/CD
+        jsonPath: .spec.stages
+      - name: Source Entity
+        type: string
+        description: The refering entity ( LDAP group for the moment )
+        jsonPath: .spec.sourceEntity
   scope: Cluster
   names:
     plural: projects
